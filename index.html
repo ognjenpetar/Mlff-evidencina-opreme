@@ -19,11 +19,18 @@
             </div>
             <h1 class="app-title">Evidencija MLFF Opreme</h1>
             <div class="header-actions">
-                <button class="btn btn-icon" onclick="exportData()" title="Export podataka">
+                <div class="data-status" id="dataStatus" onclick="showHelpModal()">
+                    <i class="fas fa-database"></i>
+                    <span id="dataStatusText">Podaci sačuvani</span>
+                </div>
+                <button class="btn btn-icon" onclick="exportData()" title="Napravi backup">
                     <i class="fas fa-download"></i>
                 </button>
-                <button class="btn btn-icon" onclick="document.getElementById('importFile').click()" title="Import podataka">
+                <button class="btn btn-icon" onclick="document.getElementById('importFile').click()" title="Učitaj backup">
                     <i class="fas fa-upload"></i>
+                </button>
+                <button class="btn btn-icon" onclick="showHelpModal()" title="Pomoć">
+                    <i class="fas fa-question-circle"></i>
                 </button>
                 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
             </div>
@@ -510,6 +517,91 @@
                 <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Otkaži</button>
                 <button class="btn btn-danger" id="confirmBtn" onclick="">Potvrdi</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-question-circle" style="color: var(--primary-green)"></i> Pomoć - Čuvanje Podataka</h3>
+                <button class="btn btn-icon" onclick="closeModal('helpModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="help-content">
+                <div class="help-section">
+                    <h4><i class="fas fa-database"></i> Gde se čuvaju podaci?</h4>
+                    <p>Svi podaci se čuvaju <strong>lokalno u vašem web browser-u</strong> koristeći LocalStorage tehnologiju.</p>
+                    <ul>
+                        <li><i class="fas fa-check" style="color: var(--success)"></i> Podaci ostaju kada zatvorite browser</li>
+                        <li><i class="fas fa-check" style="color: var(--success)"></i> Podaci ostaju kada restartujete računar</li>
+                        <li><i class="fas fa-check" style="color: var(--success)"></i> Automatsko čuvanje pri svakoj promeni</li>
+                        <li><i class="fas fa-check" style="color: var(--success)"></i> Kapacitet: ~5-10MB (hiljade unosa)</li>
+                    </ul>
+                </div>
+
+                <div class="help-section warning">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Kada se podaci mogu izgubiti?</h4>
+                    <ul>
+                        <li><i class="fas fa-times" style="color: var(--danger)"></i> Ako obrišete browser podatke/cache</li>
+                        <li><i class="fas fa-times" style="color: var(--danger)"></i> Ako koristite Incognito/Private mode</li>
+                        <li><i class="fas fa-times" style="color: var(--danger)"></i> Ako pređete na drugi browser</li>
+                        <li><i class="fas fa-times" style="color: var(--danger)"></i> Ako reinstalirate browser</li>
+                    </ul>
+                </div>
+
+                <div class="help-section highlight">
+                    <h4><i class="fas fa-shield-alt"></i> Kako zaštititi podatke?</h4>
+                    <p><strong>Redovno pravite BACKUP!</strong> Kliknite na dugme <i class="fas fa-download"></i> u header-u da preuzmete JSON fajl sa svim podacima.</p>
+                    <div class="backup-actions">
+                        <button class="btn btn-primary" onclick="exportData(); closeModal('helpModal');">
+                            <i class="fas fa-download"></i> Napravi Backup Sada
+                        </button>
+                    </div>
+                    <p class="tip"><i class="fas fa-lightbulb"></i> <strong>Savet:</strong> Čuvajte backup fajl na USB-u, cloud-u (Google Drive, Dropbox) ili pošaljite sebi na email.</p>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-upload"></i> Kako vratiti podatke?</h4>
+                    <p>Kliknite na dugme <i class="fas fa-upload"></i> u header-u i izaberite prethodno sačuvani JSON backup fajl.</p>
+                </div>
+
+                <div class="help-section">
+                    <h4><i class="fas fa-info-circle"></i> Status čuvanja</h4>
+                    <p>U header-u možete videti status podataka:</p>
+                    <ul>
+                        <li><span class="status-indicator saved"><i class="fas fa-check-circle"></i> Podaci sačuvani</span> - Sve je u redu</li>
+                        <li><span class="status-indicator warning"><i class="fas fa-exclamation-circle"></i> Backup preporučen</span> - Dugo niste napravili backup</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="dontShowAgain" onchange="setDontShowWelcome(this.checked)">
+                    Ne prikazuj ponovo pri pokretanju
+                </label>
+                <button class="btn btn-primary" onclick="closeModal('helpModal')">Razumem</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Reminder Toast -->
+    <div id="backupToast" class="toast">
+        <div class="toast-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <div class="toast-message">
+                <strong>Backup Podsetnik</strong>
+                <p>Prošlo je više od 7 dana od poslednjeg backup-a.</p>
+            </div>
+        </div>
+        <div class="toast-actions">
+            <button class="btn btn-small btn-primary" onclick="exportData(); hideBackupToast();">
+                <i class="fas fa-download"></i> Backup
+            </button>
+            <button class="btn btn-small btn-secondary" onclick="hideBackupToast()">
+                Kasnije
+            </button>
         </div>
     </div>
 

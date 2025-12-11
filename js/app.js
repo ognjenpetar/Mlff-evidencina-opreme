@@ -1,9 +1,16 @@
 // ===== DATA MANAGEMENT =====
 const STORAGE_KEY = 'mlff_equipment_data';
+const SETTINGS_KEY = 'mlff_settings';
+const BACKUP_REMINDER_DAYS = 7;
 
 let appData = {
     locations: [],
-    lastModified: null
+    lastModified: null,
+    lastBackup: null
+};
+
+let appSettings = {
+    dontShowWelcome: false
 };
 
 let currentLocationId = null;
@@ -12,7 +19,11 @@ let currentEquipmentId = null;
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
+    loadSettings();
     renderDashboard();
+    updateDataStatus();
+    checkBackupReminder();
+    checkShowWelcome();
 });
 
 // Load data from localStorage
@@ -1042,6 +1053,10 @@ function showPrintModal(content) {
 
 // ===== EXPORT/IMPORT =====
 function exportData() {
+    // Update last backup time
+    appData.lastBackup = new Date().toISOString();
+    saveData();
+
     const dataStr = JSON.stringify(appData, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1050,6 +1065,10 @@ function exportData() {
     link.download = `mlff_equipment_backup_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
+
+    // Update status
+    updateDataStatus();
+    hideBackupToast();
 }
 
 function importData(event) {
@@ -1143,3 +1162,92 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
+
+// ===== SETTINGS MANAGEMENT =====
+function loadSettings() {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+        try {
+            appSettings = JSON.parse(stored);
+        } catch (e) {
+            console.error('Error loading settings:', e);
+            appSettings = { dontShowWelcome: false };
+        }
+    }
+}
+
+function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+}
+
+function setDontShowWelcome(value) {
+    appSettings.dontShowWelcome = value;
+    saveSettings();
+}
+
+// ===== HELP & WELCOME =====
+function showHelpModal() {
+    document.getElementById('dontShowAgain').checked = appSettings.dontShowWelcome;
+    openModal('helpModal');
+}
+
+function checkShowWelcome() {
+    // Show welcome/help on first visit
+    if (!appSettings.dontShowWelcome && appData.locations.length === 0) {
+        setTimeout(() => {
+            showHelpModal();
+        }, 500);
+    }
+}
+
+// ===== DATA STATUS =====
+function updateDataStatus() {
+    const statusEl = document.getElementById('dataStatus');
+    const statusTextEl = document.getElementById('dataStatusText');
+
+    if (!appData.lastBackup) {
+        statusEl.classList.add('warning');
+        statusTextEl.textContent = 'Backup preporučen';
+        return;
+    }
+
+    const lastBackup = new Date(appData.lastBackup);
+    const now = new Date();
+    const daysSinceBackup = Math.floor((now - lastBackup) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceBackup >= BACKUP_REMINDER_DAYS) {
+        statusEl.classList.add('warning');
+        statusTextEl.textContent = `Backup: pre ${daysSinceBackup} dana`;
+    } else {
+        statusEl.classList.remove('warning');
+        statusTextEl.textContent = 'Podaci sačuvani';
+    }
+}
+
+// ===== BACKUP REMINDER =====
+function checkBackupReminder() {
+    // Don't show if no data
+    if (appData.locations.length === 0) return;
+
+    // Check if backup is needed
+    if (!appData.lastBackup) {
+        showBackupToast();
+        return;
+    }
+
+    const lastBackup = new Date(appData.lastBackup);
+    const now = new Date();
+    const daysSinceBackup = Math.floor((now - lastBackup) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceBackup >= BACKUP_REMINDER_DAYS) {
+        showBackupToast();
+    }
+}
+
+function showBackupToast() {
+    document.getElementById('backupToast').classList.add('active');
+}
+
+function hideBackupToast() {
+    document.getElementById('backupToast').classList.remove('active');
+}

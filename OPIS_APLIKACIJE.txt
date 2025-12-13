@@ -1,0 +1,220 @@
+================================================================================
+                    EVIDENCIJA MLFF OPREME - DETALJAN OPIS
+                           Orion E-mobility
+================================================================================
+
+SVRHA APLIKACIJE:
+-----------------
+Lokalna web aplikacija za evidenciju i praćenje opreme na MLFF (Multi-Lane
+Free-Flow) naplatnim portalima. Aplikacija omogućava kompletno upravljanje
+lokacijama i opremom bez potrebe za internet konekcijom ili serverom.
+
+
+GLAVNE FUNKCIONALNOSTI:
+=======================
+
+1. UPRAVLJANJE LOKACIJAMA
+-------------------------
+- Dodavanje novih lokacija (naplatni portali)
+- Unos GPS koordinata (latitude/longitude)
+- Upload fotografije lokacije
+- Opis lokacije
+- Pregled svih lokacija na dashboard-u
+- Izmena i brisanje lokacija
+
+2. EVIDENCIJA OPREME
+--------------------
+Svaki komad opreme ima sledeće podatke:
+- Tip opreme (Kamera, Senzor, Kontroler, Switch, Router, Server, UPS,
+  Antena, RFID čitač, Display, Barrier, Ostalo)
+- Inventarski broj (jedinstvena oznaka)
+- Status (Aktivna, Na servisu, Neispravna, Povučena)
+- IP adresa
+- MAC adresa
+- X/Y/Z koordinate u centimetrima (pozicija na portalu)
+- Datum postavljanja
+- Datum isteka garancije
+- Ime instalatera
+- Ime testera
+- Fotografija opreme
+- Dodatna dokumentacija (upload fajlova)
+- Napomene
+
+3. QR KOD SISTEM
+----------------
+- Automatski generisan QR kod za svaki komad opreme
+- QR kod sadrži: inventarski broj, tip, lokaciju, GPS koordinate, IP/MAC
+- Štampanje nalepnica sa QR kodom i osnovnim podacima
+- Preuzimanje QR koda kao PNG slike
+- Skeniranjem QR koda otvara se direktan link ka opremi
+
+4. NAVIGACIJA I STRUKTURA
+-------------------------
+- Breadcrumb navigacija (Dashboard > Lokacija > Oprema)
+- Bočni panel sa hijerarhijskim prikazom strukture
+- Status indikatori u strukturi (zeleno=aktivna, žuto=servis, crveno=neispravna)
+- Brzi pristup bilo kojoj opremi kroz strukturno stablo
+
+5. PRETRAGA I FILTRIRANJE
+-------------------------
+- Globalna pretraga po inventarskim brojevima, tipu, IP/MAC adresi, imenima
+- Filter po tipu opreme
+- Filter po statusu
+- Filter po lokaciji
+- Pretraga unutar pojedinačne lokacije
+
+6. PRAĆENJE STATUSA
+-------------------
+Četiri statusa opreme:
+- AKTIVNA - oprema radi normalno
+- NA SERVISU - oprema je na popravci/održavanju
+- NEISPRAVNA - oprema ne funkcioniše
+- POVUČENA - oprema je trajno uklonjena iz upotrebe
+
+Promena statusa se beleži sa razlogom promene.
+
+7. ISTORIJA PROMENA (AUDIT LOG)
+-------------------------------
+- Automatsko beleženje svih promena na opremi
+- Datum i vreme svake promene
+- Tip akcije (kreiranje, izmena, promena statusa, servis)
+- Detalji promene
+- Chronološki prikaz istorije
+
+8. MODUL ZA ODRŽAVANJE/SERVIS
+-----------------------------
+Evidencija servisnih intervencija:
+- Tip servisa (Preventivni, Korektivni, Inspekcija, Zamena dela, Kalibracija)
+- Datum servisa
+- Ime servisera
+- Opis izvršenih radova
+- Troškovi (RSD)
+- Datum sledećeg planiranog servisa
+
+9. IZVEŠTAJI I ŠTAMPANJE
+------------------------
+- Print izveštaja za pojedinačnu opremu
+- Print izveštaja za celu lokaciju sa listom opreme
+- Pregled garancija koje uskoro ističu
+- Štampanje QR nalepnica
+
+10. DASHBOARD STATISTIKA
+------------------------
+- Ukupan broj lokacija
+- Ukupan broj opreme
+- Broj aktivne opreme
+- Broj opreme na servisu
+- Garancije koje ističu (30 dana)
+- Lista opreme po tipu
+- Nedavne aktivnosti
+- Poslednji unos
+
+
+ČUVANJE PODATAKA:
+=================
+
+LOKALNO ČUVANJE (LocalStorage):
+- Svi podaci se čuvaju u browser-u
+- Podaci ostaju nakon zatvaranja browser-a
+- Podaci ostaju nakon restarta računara
+- Kapacitet: ~5-10MB (dovoljno za hiljade unosa)
+
+BACKUP SISTEM:
+- Export svih podataka u JSON fajl
+- Import podataka iz JSON backup-a
+- Podsetnik za backup (svakih 7 dana)
+- Status čuvanja u header-u
+
+UPOZORENJE - Podaci se mogu izgubiti ako:
+- Obrišete browser podatke/cache
+- Koristite Incognito/Private mode
+- Pređete na drugi browser
+- Reinstalirate browser
+
+PREPORUKA: Redovno pravite backup i čuvajte ga na sigurnom mestu
+(USB, cloud, email).
+
+
+TEHNIČKA SPECIFIKACIJA:
+=======================
+
+TEHNOLOGIJE:
+- HTML5
+- CSS3 (responsive dizajn)
+- JavaScript (vanilla, bez framework-a)
+- LocalStorage API
+- QRCode.js biblioteka
+- Font Awesome ikone
+
+DIZAJN:
+- Crno-zelena tema
+- Visok kontrast za čitljivost
+- Responsive layout (desktop, tablet, mobilni)
+- Print-optimizovani stilovi
+
+KOMPATIBILNOST:
+- Chrome, Firefox, Edge, Safari (moderni browseri)
+- Desktop i mobilni uređaji
+- Radi offline (bez internet konekcije)
+
+
+STRUKTURA FAJLOVA:
+==================
+
+/Mlff-evidencina-opreme/
+├── index.html          # Glavna HTML stranica
+├── css/
+│   └── styles.css      # Svi stilovi
+├── js/
+│   └── app.js          # Kompletna aplikaciona logika
+└── OPIS_APLIKACIJE.txt # Ovaj fajl
+
+
+KAKO KORISTITI:
+===============
+
+1. POKRETANJE:
+   - Otvorite index.html u web browser-u
+   - Aplikacija se pokreće lokalno, bez servera
+
+2. DODAVANJE LOKACIJE:
+   - Kliknite "Dodaj Lokaciju" na dashboard-u
+   - Unesite naziv, koordinate, opis
+   - Opciono: dodajte fotografiju
+   - Sačuvajte
+
+3. DODAVANJE OPREME:
+   - Otvorite lokaciju
+   - Kliknite "Dodaj Opremu"
+   - Popunite sve potrebne podatke
+   - Sačuvajte
+
+4. QR KODOVI:
+   - Otvorite detalje opreme
+   - Kliknite "QR Kod" dugme
+   - Štampajte ili preuzmite
+
+5. PRETRAGA:
+   - Koristite search bar na vrhu dashboard-a
+   - Ili koristite filtere za tip/status/lokaciju
+
+6. BACKUP:
+   - Kliknite ikonu za download u header-u
+   - Sačuvajte JSON fajl na sigurno mesto
+
+7. VRAĆANJE PODATAKA:
+   - Kliknite ikonu za upload u header-u
+   - Izaberite prethodno sačuvani JSON fajl
+
+
+BRENDING:
+=========
+- Naziv: Evidencija MLFF Opreme
+- Logo: Orion E-mobility
+- Boje: Crna (#0a0a0a), Zelena (#00ff88)
+
+
+================================================================================
+                              Verzija 1.0
+                           Decembar 2025
+================================================================================

@@ -1,7 +1,11 @@
 // ===== DATA MANAGEMENT =====
 const STORAGE_KEY = 'mlff_equipment_data';
 const SETTINGS_KEY = 'mlff_settings';
+const CUSTOM_TYPES_KEY = 'mlff_custom_types';
 const BACKUP_REMINDER_DAYS = 7;
+
+// Predefined equipment types
+const DEFAULT_EQUIPMENT_TYPES = ['VDX', 'VRX', 'Antena', 'Switch', 'TRC', 'TRM', 'intel', 'jetson', 'Wi-FI'];
 
 let appData = {
     locations: [],
@@ -14,6 +18,8 @@ let appSettings = {
     sidebarOpen: false
 };
 
+let customEquipmentTypes = [];
+
 let currentLocationId = null;
 let currentEquipmentId = null;
 let qrCodeInstance = null;
@@ -23,6 +29,8 @@ let qrCodeSmallInstance = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     loadSettings();
+    loadCustomTypes();
+    populateEquipmentTypes();
     renderDashboard();
     renderStructureTree();
     updateBreadcrumb();
@@ -846,22 +854,32 @@ function renderDocumentsList(equipment) {
         return;
     }
 
-    container.innerHTML = documents.map((doc, index) => `
-        <div class="document-item">
-            <span class="document-name">
-                <i class="fas fa-file"></i>
-                ${doc.name}
-            </span>
-            <div class="document-actions">
-                <button class="btn btn-icon btn-small" onclick="downloadDocument(${index})" title="Preuzmi">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button class="btn btn-icon btn-small" onclick="deleteDocument(${index})" title="Obriši">
-                    <i class="fas fa-trash"></i>
-                </button>
+    container.innerHTML = documents.map((doc, index) => {
+        // Determine icon based on file type
+        let icon = 'fa-file';
+        if (doc.type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf')) {
+            icon = 'fa-file-pdf';
+        } else if (doc.type && doc.type.startsWith('image/')) {
+            icon = 'fa-file-image';
+        }
+
+        return `
+            <div class="document-item">
+                <span class="document-name">
+                    <i class="fas ${icon}"></i>
+                    ${doc.name}
+                </span>
+                <div class="document-actions">
+                    <button class="btn btn-icon btn-small" onclick="downloadDocument(${index})" title="Preuzmi">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="btn btn-icon btn-small" onclick="deleteDocument(${index})" title="Obriši">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ===== QR CODE =====
@@ -1135,7 +1153,13 @@ function saveEquipment(event) {
 
     if (!location.equipment) location.equipment = [];
 
-    const type = document.getElementById('eqFormType').value;
+    const type = document.getElementById('eqFormType').value.trim();
+
+    // Save custom type if it's new
+    if (type && !DEFAULT_EQUIPMENT_TYPES.includes(type)) {
+        saveCustomType(type);
+    }
+
     const inventoryNumber = document.getElementById('eqFormInventory').value.trim();
     const status = document.getElementById('eqFormStatus').value;
     const ip = document.getElementById('eqFormIP').value.trim();
@@ -1455,7 +1479,7 @@ function generateEquipmentReportHTML(location, equipment) {
 
     return `
         <div class="print-header">
-            <div class="print-logo">Orion <span>E-mobility</span></div>
+            <div class="print-logo"><span style="color:#a855f7;">Orion</span> <span>E-mobility</span></div>
             <h1 class="print-title">Izveštaj Opreme</h1>
             <div class="print-date">${formatDate(now)}</div>
         </div>
@@ -1583,7 +1607,7 @@ function generateLocationReportHTML(location) {
 
     return `
         <div class="print-header">
-            <div class="print-logo">Orion <span>E-mobility</span></div>
+            <div class="print-logo"><span style="color:#a855f7;">Orion</span> <span>E-mobility</span></div>
             <h1 class="print-title">Izveštaj Lokacije</h1>
             <div class="print-date">${formatDate(now)}</div>
         </div>
@@ -1786,6 +1810,62 @@ function loadSettings() {
 
 function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+}
+
+// ===== CUSTOM EQUIPMENT TYPES =====
+function loadCustomTypes() {
+    const stored = localStorage.getItem(CUSTOM_TYPES_KEY);
+    if (stored) {
+        try {
+            customEquipmentTypes = JSON.parse(stored);
+        } catch (e) {
+            console.error('Error loading custom types:', e);
+            customEquipmentTypes = [];
+        }
+    }
+}
+
+function saveCustomType(type) {
+    if (!type || type.trim() === '') return;
+    const trimmedType = type.trim();
+
+    // Don't save if it's a default type or already in custom types
+    if (DEFAULT_EQUIPMENT_TYPES.includes(trimmedType) || customEquipmentTypes.includes(trimmedType)) {
+        return;
+    }
+
+    customEquipmentTypes.push(trimmedType);
+    localStorage.setItem(CUSTOM_TYPES_KEY, JSON.stringify(customEquipmentTypes));
+    populateEquipmentTypes();
+}
+
+function populateEquipmentTypes() {
+    // Populate datalist
+    const datalist = document.getElementById('equipmentTypesList');
+    if (datalist) {
+        const allTypes = [...DEFAULT_EQUIPMENT_TYPES, ...customEquipmentTypes].sort();
+        datalist.innerHTML = allTypes.map(type => `<option value="${type}">`).join('');
+    }
+
+    // Populate filter dropdown
+    const filterSelect = document.getElementById('filterType');
+    if (filterSelect) {
+        const allTypes = [...new Set([...DEFAULT_EQUIPMENT_TYPES, ...customEquipmentTypes])].sort();
+
+        // Get all types currently in use
+        const usedTypes = new Set();
+        appData.locations.forEach(loc => {
+            (loc.equipment || []).forEach(eq => {
+                if (eq.type) usedTypes.add(eq.type);
+            });
+        });
+
+        // Combine and sort all types
+        const combinedTypes = [...new Set([...allTypes, ...usedTypes])].sort();
+
+        filterSelect.innerHTML = '<option value="">Svi tipovi</option>' +
+            combinedTypes.map(type => `<option value="${type}">${type}</option>`).join('');
+    }
 }
 
 function setDontShowWelcome(value) {

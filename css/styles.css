@@ -3,6 +3,7 @@
     --primary-green: #00ff88;
     --primary-green-dark: #00cc6a;
     --primary-green-light: #33ffaa;
+    --orion-purple: #a855f7;
     --bg-dark: #0a0a0a;
     --bg-card: #141414;
     --bg-card-hover: #1a1a1a;
@@ -83,6 +84,11 @@ body {
 
 .logo-text .highlight {
     color: var(--primary-green);
+}
+
+.orion-purple {
+    color: var(--orion-purple);
+    font-weight: 700;
 }
 
 .app-title {

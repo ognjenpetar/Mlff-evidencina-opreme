@@ -16,7 +16,7 @@
             <div class="logo-container">
                 <div class="logo">
                     <i class="fas fa-bolt"></i>
-                    <span class="logo-text">Orion <span class="highlight">E-mobility</span></span>
+                    <span class="logo-text"><span class="orion-purple">Orion</span> <span class="highlight">E-mobility</span></span>
                 </div>
             </div>
             <h1 class="app-title">Evidencija MLFF Opreme</h1>
@@ -79,17 +79,6 @@
                         <div class="filter-buttons">
                             <select id="filterType" onchange="applyFilters()">
                                 <option value="">Svi tipovi</option>
-                                <option value="Kamera">Kamera</option>
-                                <option value="Senzor">Senzor</option>
-                                <option value="Kontroler">Kontroler</option>
-                                <option value="Switch">Switch</option>
-                                <option value="Router">Router</option>
-                                <option value="Server">Server</option>
-                                <option value="UPS">UPS</option>
-                                <option value="Antena">Antena</option>
-                                <option value="RFID čitač">RFID čitač</option>
-                                <option value="Display">Display</option>
-                                <option value="Barrier">Barrier</option>
                             </select>
                             <select id="filterStatus" onchange="applyFilters()">
                                 <option value="">Svi statusi</option>
@@ -426,9 +415,9 @@
                                     <p class="no-data">Nema dodatne dokumentacije</p>
                                 </div>
                                 <button class="btn btn-small btn-secondary" onclick="document.getElementById('docUpload').click()">
-                                    <i class="fas fa-upload"></i> Dodaj Dokumentaciju
+                                    <i class="fas fa-upload"></i> Dodaj Dokumentaciju (PDF)
                                 </button>
-                                <input type="file" id="docUpload" multiple style="display:none" onchange="uploadDocuments(event)">
+                                <input type="file" id="docUpload" multiple accept=".pdf,application/pdf" style="display:none" onchange="uploadDocuments(event)">
                             </div>
 
                             <!-- History / Audit Log -->
@@ -523,21 +512,18 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="eqFormType">Tip Opreme *</label>
-                            <select id="eqFormType" required>
-                                <option value="">Izaberi tip...</option>
-                                <option value="Kamera">Kamera</option>
-                                <option value="Senzor">Senzor</option>
-                                <option value="Kontroler">Kontroler</option>
-                                <option value="Switch">Switch</option>
-                                <option value="Router">Router</option>
-                                <option value="Server">Server</option>
-                                <option value="UPS">UPS</option>
-                                <option value="Antena">Antena</option>
-                                <option value="RFID čitač">RFID čitač</option>
-                                <option value="Display">Display</option>
-                                <option value="Barrier">Barrier</option>
-                                <option value="Ostalo">Ostalo</option>
-                            </select>
+                            <input type="text" id="eqFormType" list="equipmentTypesList" required placeholder="Izaberi ili unesi tip...">
+                            <datalist id="equipmentTypesList">
+                                <option value="VDX">
+                                <option value="VRX">
+                                <option value="Antena">
+                                <option value="Switch">
+                                <option value="TRC">
+                                <option value="TRM">
+                                <option value="intel">
+                                <option value="jetson">
+                                <option value="Wi-FI">
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label for="eqFormInventory">Inventarski Broj *</label>
@@ -666,7 +652,7 @@
                         </div>
                     </div>
                     <div class="qr-label-footer">
-                        Skeniraj za detalje | Orion E-mobility
+                        Skeniraj za detalje | <span class="orion-purple">Orion</span> E-mobility
                     </div>
                 </div>
                 <div class="qr-actions">

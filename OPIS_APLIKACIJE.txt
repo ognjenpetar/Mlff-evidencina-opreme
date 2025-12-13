@@ -25,8 +25,10 @@ GLAVNE FUNKCIONALNOSTI:
 2. EVIDENCIJA OPREME
 --------------------
 Svaki komad opreme ima sledeće podatke:
-- Tip opreme (Kamera, Senzor, Kontroler, Switch, Router, Server, UPS,
-  Antena, RFID čitač, Display, Barrier, Ostalo)
+- Tip opreme (VDX, VRX, Antena, Switch, TRC, TRM, intel, jetson, Wi-FI)
+  * Predefinisani tipovi su: VDX, VRX, Antena, Switch, TRC, TRM, intel, jetson, Wi-FI
+  * Mogućnost unosa custom tipova - uneti naziv se pamti i nudi u padajućem meniju
+  * Svi prethodno uneti custom tipovi se čuvaju i nude kao opcije
 - Inventarski broj (jedinstvena oznaka)
 - Status (Aktivna, Na servisu, Neispravna, Povučena)
 - IP adresa
@@ -37,7 +39,11 @@ Svaki komad opreme ima sledeće podatke:
 - Ime instalatera
 - Ime testera
 - Fotografija opreme
-- Dodatna dokumentacija (upload fajlova)
+- Dodatna dokumentacija (upload PDF dokumenata - mogućnost dodavanja više fajlova)
+  * Podržani formati: PDF
+  * Mogućnost dodavanja više PDF dokumenata odjednom
+  * Vizuelni prikaz sa ikonom za PDF fajlove
+  * Preuzimanje i brisanje dokumenata
 - Napomene
 
 3. QR KOD SISTEM
@@ -118,6 +124,7 @@ LOKALNO ČUVANJE (LocalStorage):
 - Podaci ostaju nakon zatvaranja browser-a
 - Podaci ostaju nakon restarta računara
 - Kapacitet: ~5-10MB (dovoljno za hiljade unosa)
+- Custom tipovi opreme se čuvaju odvojeno i automatski učitavaju pri pokretanju
 
 BACKUP SISTEM:
 - Export svih podataka u JSON fajl
@@ -211,8 +218,27 @@ BRENDING:
 =========
 - Naziv: Evidencija MLFF Opreme
 - Logo: Orion E-mobility
-- Boje: Crna (#0a0a0a), Zelena (#00ff88)
+  * "Orion" - Ljubičasta boja (#a855f7)
+  * "E-mobility" - Zelena boja (#00ff88)
+- Boje: Crna (#0a0a0a), Zelena (#00ff88), Ljubičasta (#a855f7)
 
+
+================================================================================
+IZMENE I AŽURIRANJA:
+====================
+
+Verzija 1.1 - Decembar 2025
+----------------------------
++ Dodati predefinisani tipovi opreme: VDX, VRX, Antena, Switch, TRC, TRM,
+  intel, jetson, Wi-FI
++ Mogućnost unosa custom tipova opreme sa automatskim pamćenjem
++ Poboljšana podrška za PDF dokumente:
+  - Accept filter za PDF fajlove
+  - Ikona za PDF dokumente (fa-file-pdf)
+  - Jasna indikacija "Dodaj Dokumentaciju (PDF)"
++ "Orion" tekst sada je ljubičaste boje (#a855f7)
++ Filter tipova opreme dinamički popunjava sve tipove koji su u upotrebi
++ Custom tipovi se čuvaju u LocalStorage (mlff_custom_types)
 
 ================================================================================
                               Verzija 1.0

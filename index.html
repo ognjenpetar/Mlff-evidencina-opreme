@@ -6,8 +6,12 @@
     <title>Evidencija MLFF Opreme - Orion E-mobility</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS for OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- QR Code Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Leaflet JS for OpenStreetMap -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -106,9 +110,19 @@
 
                     <div class="dashboard-header">
                         <h2><i class="fas fa-map-marker-alt"></i> Pregled Lokacija</h2>
-                        <button class="btn btn-primary" onclick="showAddLocationModal()">
-                            <i class="fas fa-plus"></i> Dodaj Lokaciju
-                        </button>
+                        <div class="dashboard-actions">
+                            <button class="btn btn-secondary" onclick="toggleMapView()">
+                                <i class="fas fa-map"></i> <span id="mapToggleText">Prikaži Mapu</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="showAddLocationModal()">
+                                <i class="fas fa-plus"></i> Dodaj Lokaciju
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Map View -->
+                    <div id="mapView" class="map-view" style="display:none">
+                        <div id="locationsMap" class="locations-map"></div>
                     </div>
 
                     <!-- Statistics Panel -->
@@ -579,8 +593,8 @@
                     <h4>Instalacija i Testiranje</h4>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="eqFormInstallDate">Datum Postavljanja *</label>
-                            <input type="date" id="eqFormInstallDate" required>
+                            <label for="eqFormInstallDate">Datum Postavljanja</label>
+                            <input type="date" id="eqFormInstallDate">
                         </div>
                         <div class="form-group">
                             <label for="eqFormWarranty">Garancija Do</label>
@@ -617,6 +631,20 @@
                     <h4>Napomena</h4>
                     <div class="form-group">
                         <textarea id="eqFormNotes" rows="2" placeholder="Dodatne napomene..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>PDF Dokumentacija</h4>
+                    <div class="form-group">
+                        <div class="file-upload">
+                            <input type="file" id="eqFormDocs" multiple accept=".pdf,application/pdf" onchange="previewDocuments(event)">
+                            <div class="file-upload-label">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>Dodaj PDF dokumente</span>
+                            </div>
+                        </div>
+                        <div id="eqDocsPreview" class="docs-preview"></div>
                     </div>
                 </div>
 

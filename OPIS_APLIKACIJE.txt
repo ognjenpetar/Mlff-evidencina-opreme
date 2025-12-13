@@ -49,10 +49,17 @@ Svaki komad opreme ima sledeće podatke:
 3. QR KOD SISTEM
 ----------------
 - Automatski generisan QR kod za svaki komad opreme
-- QR kod sadrži: inventarski broj, tip, lokaciju, GPS koordinate, IP/MAC
+- QR kod sadrži URL koji vodi direktno do kompletnog prikaza opreme
+- Skeniranjem QR koda automatski se otvara aplikacija sa svim podacima:
+  * Lokacija i GPS koordinate
+  * Sve tehničke specifikacije (IP, MAC, pozicija)
+  * Ko je montirao i testirao
+  * Datum instalacije i garancija
+  * PDF dokumentacija
+  * Servisna istorija
+  * Kompletan audit log
 - Štampanje nalepnica sa QR kodom i osnovnim podacima
 - Preuzimanje QR koda kao PNG slike
-- Skeniranjem QR koda otvara se direktan link ka opremi
 
 4. NAVIGACIJA I STRUKTURA
 -------------------------
@@ -115,6 +122,21 @@ Evidencija servisnih intervencija:
 - Nedavne aktivnosti
 - Poslednji unos
 
+11. INTERAKTIVNA MAPA LOKACIJA
+-------------------------------
+- OpenStreetMap podloga
+- Prikaz svih lokacija sa markerima
+- Broj opreme prikazan na svakom markeru
+- Popup sa osnovnim informacijama:
+  * Naziv lokacije
+  * GPS koordinate
+  * Opis lokacije
+  * Broj opreme
+  * Direktan link ka detaljima
+- Automatski zoom i fitovanje svih lokacija
+- Toggle prikaz (mapa / grid lista)
+- Responsive dizajn
+
 
 ČUVANJE PODATAKA:
 =================
@@ -151,6 +173,7 @@ TEHNOLOGIJE:
 - JavaScript (vanilla, bez framework-a)
 - LocalStorage API
 - QRCode.js biblioteka
+- Leaflet.js (OpenStreetMap integracija)
 - Font Awesome ikone
 
 DIZAJN:
@@ -193,7 +216,8 @@ KAKO KORISTITI:
 3. DODAVANJE OPREME:
    - Otvorite lokaciju
    - Kliknite "Dodaj Opremu"
-   - Popunite sve potrebne podatke
+   - Popunite OBAVEZNA polja: Inventarski broj i Tip opreme
+   - Opciono: dodajte ostale podatke (IP, MAC, poziciju, fotografiju, PDF-ove)
    - Sačuvajte
 
 4. QR KODOVI:
@@ -201,15 +225,21 @@ KAKO KORISTITI:
    - Kliknite "QR Kod" dugme
    - Štampajte ili preuzmite
 
-5. PRETRAGA:
+5. MAPA LOKACIJA:
+   - Kliknite "Prikaži Mapu" na dashboard-u
+   - Vidite sve lokacije na OpenStreetMap-u
+   - Kliknite na marker za detalje
+   - "Otvori Detalje" vodi direktno na lokaciju
+
+6. PRETRAGA:
    - Koristite search bar na vrhu dashboard-a
    - Ili koristite filtere za tip/status/lokaciju
 
-6. BACKUP:
+7. BACKUP:
    - Kliknite ikonu za download u header-u
    - Sačuvajte JSON fajl na sigurno mesto
 
-7. VRAĆANJE PODATAKA:
+8. VRAĆANJE PODATAKA:
    - Kliknite ikonu za upload u header-u
    - Izaberite prethodno sačuvani JSON fajl
 
@@ -226,6 +256,26 @@ BRENDING:
 ================================================================================
 IZMENE I AŽURIRANJA:
 ====================
+
+Verzija 1.2 - Decembar 2025
+----------------------------
++ INTERAKTIVNA MAPA sa OpenStreetMap podlogom
+  - Vizuelni prikaz svih lokacija na mapi
+  - Markeri sa brojem opreme
+  - Popup sa osnovnim informacijama i direktnim linkom
+  - Automatski zoom i centriranje na lokacije
+  - Responsive prikaz (600px desktop, 400px mobile)
++ UPLOAD PDF DOKUMENATA U FORMI ZA OPREMU
+  - Mogućnost dodavanja PDF-ova tokom kreiranja opreme
+  - Preview liste dokumenata sa veličinom fajla
+  - Podržava multiple upload
++ POJEDNOSTAVLJENO DODAVANJE OPREME
+  - Samo 2 obavezna polja: Inventarski broj i Tip opreme
+  - Datum postavljanja više nije obavezan
++ POBOLJŠAN QR KOD SISTEM
+  - QR kod sada generiše URL do opreme
+  - Skeniranjem se automatski otvara kompletan prikaz opreme
+  - Svi podaci vidljivi nakon skeniranja (ceo report)
 
 Verzija 1.1 - Decembar 2025
 ----------------------------

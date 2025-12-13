@@ -24,6 +24,8 @@ let currentLocationId = null;
 let currentEquipmentId = null;
 let qrCodeInstance = null;
 let qrCodeSmallInstance = null;
+let mapInstance = null;
+let mapMarkers = [];
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -894,16 +896,12 @@ function generateEquipmentQR() {
     const smallContainer = document.getElementById('equipmentQRSmall');
     smallContainer.innerHTML = '';
 
-    const qrData = JSON.stringify({
-        id: equipment.id,
-        inv: equipment.inventoryNumber,
-        type: equipment.type,
-        loc: location.name,
-        gps: `${location.latitude},${location.longitude}`
-    });
+    // Generate URL that opens equipment detail
+    const baseUrl = window.location.origin + window.location.pathname;
+    const qrUrl = `${baseUrl}#eq=${equipment.id}`;
 
     qrCodeSmallInstance = new QRCode(smallContainer, {
-        text: qrData,
+        text: qrUrl,
         width: 100,
         height: 100,
         colorDark: '#000000',
@@ -924,22 +922,16 @@ function showQRModal() {
     document.getElementById('qrLocation').textContent = location.name;
     document.getElementById('qrGPS').textContent = `${location.latitude}, ${location.longitude}`;
 
-    // Generate large QR
+    // Generate large QR with URL
     const largeContainer = document.getElementById('qrCodeLarge');
     largeContainer.innerHTML = '';
 
-    const qrData = JSON.stringify({
-        id: equipment.id,
-        inv: equipment.inventoryNumber,
-        type: equipment.type,
-        loc: location.name,
-        gps: `${location.latitude},${location.longitude}`,
-        ip: equipment.ip || '',
-        mac: equipment.mac || ''
-    });
+    // Generate URL that opens equipment detail
+    const baseUrl = window.location.origin + window.location.pathname;
+    const qrUrl = `${baseUrl}#eq=${equipment.id}`;
 
     qrCodeInstance = new QRCode(largeContainer, {
-        text: qrData,
+        text: qrUrl,
         width: 150,
         height: 150,
         colorDark: '#000000',
@@ -1099,9 +1091,9 @@ function showAddEquipmentModal() {
     document.getElementById('equipmentForm').reset();
     document.getElementById('equipmentId').value = '';
     document.getElementById('equipmentLocationId').value = currentLocationId;
-    document.getElementById('eqFormInstallDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('eqFormStatus').value = 'Aktivna';
     document.getElementById('eqPhotoPreview').innerHTML = '';
+    document.getElementById('eqDocsPreview').innerHTML = '';
     openModal('equipmentModal');
 }
 
@@ -1180,7 +1172,22 @@ function saveEquipment(event) {
         photoPromise = fileToBase64(photoInput.files[0]);
     }
 
-    photoPromise.then(photo => {
+    // Handle document uploads
+    const docsInput = document.getElementById('eqFormDocs');
+    let docsPromise = Promise.resolve([]);
+
+    if (docsInput && docsInput.files.length > 0) {
+        const docPromises = Array.from(docsInput.files).map(file => {
+            return fileToBase64(file).then(data => ({
+                name: file.name,
+                type: file.type,
+                data
+            }));
+        });
+        docsPromise = Promise.all(docPromises);
+    }
+
+    Promise.all([photoPromise, docsPromise]).then(([photo, newDocs]) => {
         if (id) {
             const equipment = location.equipment.find(e => e.id === id);
             if (equipment) {
@@ -1204,6 +1211,12 @@ function saveEquipment(event) {
                 equipment.tester = tester;
                 equipment.notes = notes;
                 if (photo) equipment.photo = photo;
+
+                // Add new documents
+                if (newDocs.length > 0) {
+                    if (!equipment.documents) equipment.documents = [];
+                    equipment.documents.push(...newDocs);
+                }
 
                 // Add to history
                 if (changes.length > 0) {
@@ -1232,7 +1245,7 @@ function saveEquipment(event) {
                 tester,
                 notes,
                 photo,
-                documents: [],
+                documents: newDocs.length > 0 ? newDocs : [],
                 maintenance: [],
                 history: [{
                     date: new Date().toISOString(),
@@ -1745,6 +1758,26 @@ function previewImage(event, previewId) {
     reader.readAsDataURL(file);
 }
 
+function previewDocuments(event) {
+    const files = event.target.files;
+    const preview = document.getElementById('eqDocsPreview');
+
+    if (!files.length) {
+        preview.innerHTML = '';
+        return;
+    }
+
+    const fileList = Array.from(files).map(file => `
+        <div class="doc-preview-item">
+            <i class="fas fa-file-pdf"></i>
+            <span>${file.name}</span>
+            <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
+        </div>
+    `).join('');
+
+    preview.innerHTML = `<div class="docs-preview-list">${fileList}</div>`;
+}
+
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1946,4 +1979,115 @@ function showStatusBreakdown() {
 function showExpiringWarranties() {
     // Scroll to warranty list
     document.getElementById('warrantyList').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== MAP FUNCTIONALITY =====
+function toggleMapView() {
+    const mapView = document.getElementById('mapView');
+    const mapToggleText = document.getElementById('mapToggleText');
+    const locationsSection = document.querySelector('.locations-section');
+
+    if (mapView.style.display === 'none') {
+        mapView.style.display = 'block';
+        mapToggleText.textContent = 'Sakrij Mapu';
+        if (locationsSection) locationsSection.style.display = 'none';
+        initializeMap();
+    } else {
+        mapView.style.display = 'none';
+        mapToggleText.textContent = 'Prikaži Mapu';
+        if (locationsSection) locationsSection.style.display = 'block';
+    }
+}
+
+function initializeMap() {
+    const mapContainer = document.getElementById('locationsMap');
+
+    // If map already exists, destroy it
+    if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
+    }
+
+    // Create new map
+    if (appData.locations.length === 0) {
+        mapContainer.innerHTML = '<div class="map-no-data"><i class="fas fa-map-marked-alt"></i><p>Nema lokacija za prikaz na mapi</p></div>';
+        return;
+    }
+
+    mapContainer.innerHTML = '';
+
+    // Calculate center and zoom based on locations
+    const bounds = appData.locations.map(loc => [parseFloat(loc.latitude), parseFloat(loc.longitude)]);
+
+    // Default center (Serbia)
+    let centerLat = 44.8125;
+    let centerLng = 20.4612;
+    let zoom = 7;
+
+    if (bounds.length > 0) {
+        centerLat = bounds.reduce((sum, coord) => sum + coord[0], 0) / bounds.length;
+        centerLng = bounds.reduce((sum, coord) => sum + coord[1], 0) / bounds.length;
+        zoom = bounds.length === 1 ? 13 : 7;
+    }
+
+    // Initialize Leaflet map
+    mapInstance = L.map('locationsMap').setView([centerLat, centerLng], zoom);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(mapInstance);
+
+    // Clear existing markers
+    mapMarkers.forEach(marker => marker.remove());
+    mapMarkers = [];
+
+    // Add markers for each location
+    appData.locations.forEach(loc => {
+        const lat = parseFloat(loc.latitude);
+        const lng = parseFloat(loc.longitude);
+
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const equipmentCount = (loc.equipment || []).length;
+
+        // Create custom icon
+        const markerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div class="marker-pin">
+                <i class="fas fa-map-marker-alt"></i>
+                <span class="marker-count">${equipmentCount}</span>
+            </div>`,
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+        });
+
+        const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(mapInstance);
+
+        // Create popup content
+        const popupContent = `
+            <div class="map-popup">
+                <h4>${loc.name}</h4>
+                <p><i class="fas fa-map-pin"></i> ${lat}, ${lng}</p>
+                ${loc.description ? `<p class="popup-desc">${loc.description}</p>` : ''}
+                <p><i class="fas fa-microchip"></i> ${equipmentCount} oprema</p>
+                <button class="btn btn-small btn-primary" onclick="showLocationDetail('${loc.id}'); closeModal('mapView')">Otvori Detalje</button>
+            </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        mapMarkers.push(marker);
+    });
+
+    // Fit bounds if multiple locations
+    if (bounds.length > 1) {
+        mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    // Force map to recalculate size
+    setTimeout(() => {
+        mapInstance.invalidateSize();
+    }, 100);
 }

@@ -10,21 +10,53 @@ let appData = {
 };
 
 let appSettings = {
-    dontShowWelcome: false
+    dontShowWelcome: false,
+    sidebarOpen: false
 };
 
 let currentLocationId = null;
 let currentEquipmentId = null;
+let qrCodeInstance = null;
+let qrCodeSmallInstance = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     loadSettings();
     renderDashboard();
+    renderStructureTree();
+    updateBreadcrumb();
     updateDataStatus();
+    updateLocationFilter();
     checkBackupReminder();
     checkShowWelcome();
+    handleHashNavigation();
 });
+
+// Handle URL hash for QR code navigation
+window.addEventListener('hashchange', handleHashNavigation);
+
+function handleHashNavigation() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#eq=')) {
+        const equipmentId = hash.substring(4);
+        navigateToEquipment(equipmentId);
+    } else if (hash.startsWith('#loc=')) {
+        const locationId = hash.substring(5);
+        showLocationDetail(locationId);
+    }
+}
+
+function navigateToEquipment(equipmentId) {
+    for (const loc of appData.locations) {
+        const eq = (loc.equipment || []).find(e => e.id === equipmentId);
+        if (eq) {
+            currentLocationId = loc.id;
+            showEquipmentDetail(equipmentId);
+            return;
+        }
+    }
+}
 
 // Load data from localStorage
 function loadData() {
@@ -34,7 +66,7 @@ function loadData() {
             appData = JSON.parse(stored);
         } catch (e) {
             console.error('Error loading data:', e);
-            appData = { locations: [], lastModified: null };
+            appData = { locations: [], lastModified: null, lastBackup: null };
         }
     }
 }
@@ -43,6 +75,7 @@ function loadData() {
 function saveData() {
     appData.lastModified = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    updateDataStatus();
 }
 
 // Generate unique ID
@@ -59,20 +92,283 @@ function showView(viewId) {
 }
 
 function showDashboard() {
+    currentLocationId = null;
+    currentEquipmentId = null;
     showView('dashboardView');
     renderDashboard();
+    updateBreadcrumb();
+    renderStructureTree();
+    window.location.hash = '';
 }
 
 function showLocationDetail(locationId) {
     currentLocationId = locationId;
+    currentEquipmentId = null;
     showView('locationDetailView');
     renderLocationDetail();
+    updateBreadcrumb();
+    renderStructureTree();
+    window.location.hash = `loc=${locationId}`;
 }
 
 function showEquipmentDetail(equipmentId) {
     currentEquipmentId = equipmentId;
     showView('equipmentDetailView');
     renderEquipmentDetail();
+    updateBreadcrumb();
+    renderStructureTree();
+    generateEquipmentQR();
+    window.location.hash = `eq=${equipmentId}`;
+}
+
+// ===== BREADCRUMB =====
+function updateBreadcrumb() {
+    const breadcrumb = document.getElementById('breadcrumb');
+    let html = `<a href="#" onclick="showDashboard(); return false;" class="breadcrumb-item">
+        <i class="fas fa-home"></i> Dashboard
+    </a>`;
+
+    if (currentLocationId) {
+        const location = appData.locations.find(l => l.id === currentLocationId);
+        if (location) {
+            html += `<span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>`;
+            if (currentEquipmentId) {
+                html += `<a href="#" onclick="showLocationDetail('${location.id}'); return false;" class="breadcrumb-item">
+                    <i class="fas fa-map-marker-alt"></i> ${location.name}
+                </a>`;
+            } else {
+                html += `<span class="breadcrumb-item active">
+                    <i class="fas fa-map-marker-alt"></i> ${location.name}
+                </span>`;
+            }
+        }
+    }
+
+    if (currentEquipmentId) {
+        const location = appData.locations.find(l => l.id === currentLocationId);
+        if (location) {
+            const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
+            if (equipment) {
+                html += `<span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>`;
+                html += `<span class="breadcrumb-item active">
+                    <i class="fas fa-microchip"></i> ${equipment.type} - ${equipment.inventoryNumber}
+                </span>`;
+            }
+        }
+    }
+
+    breadcrumb.innerHTML = html;
+}
+
+// ===== STRUCTURE TREE =====
+function toggleStructurePanel() {
+    const sidebar = document.getElementById('structureSidebar');
+    sidebar.classList.toggle('active');
+    appSettings.sidebarOpen = sidebar.classList.contains('active');
+    saveSettings();
+}
+
+function renderStructureTree() {
+    const container = document.getElementById('structureTree');
+
+    if (appData.locations.length === 0) {
+        container.innerHTML = '<p class="no-data">Nema lokacija</p>';
+        return;
+    }
+
+    let html = '<div class="tree-root"><div class="tree-item">';
+
+    appData.locations.forEach(loc => {
+        const isLocationActive = currentLocationId === loc.id && !currentEquipmentId;
+        const equipmentCount = (loc.equipment || []).length;
+
+        html += `
+            <div class="tree-location ${isLocationActive ? 'active' : ''}" onclick="showLocationDetail('${loc.id}')">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>${loc.name}</span>
+                <span class="count">${equipmentCount}</span>
+            </div>
+        `;
+
+        if (loc.equipment && loc.equipment.length > 0) {
+            html += '<div class="tree-equipment-list">';
+            loc.equipment.forEach(eq => {
+                const isActive = currentEquipmentId === eq.id;
+                const statusClass = getStatusDotClass(eq.status);
+                html += `
+                    <div class="tree-equipment ${isActive ? 'active' : ''}" onclick="event.stopPropagation(); currentLocationId='${loc.id}'; showEquipmentDetail('${eq.id}')">
+                        <i class="fas fa-microchip"></i>
+                        <span>${eq.inventoryNumber}</span>
+                        <span class="status-dot ${statusClass}"></span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+    });
+
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function getStatusDotClass(status) {
+    switch(status) {
+        case 'Na servisu': return 'service';
+        case 'Neispravna': return 'broken';
+        case 'Povučena': return 'retired';
+        default: return 'active';
+    }
+}
+
+// ===== SEARCH & FILTER =====
+function performSearch(query) {
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const resultsDiv = document.getElementById('searchResults');
+    const resultsList = document.getElementById('searchResultsList');
+
+    if (!query || query.length < 2) {
+        clearBtn.style.display = 'none';
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    clearBtn.style.display = 'block';
+    const q = query.toLowerCase();
+    const results = [];
+
+    // Search locations
+    appData.locations.forEach(loc => {
+        if (loc.name.toLowerCase().includes(q) ||
+            (loc.description && loc.description.toLowerCase().includes(q))) {
+            results.push({
+                type: 'location',
+                id: loc.id,
+                title: loc.name,
+                subtitle: `Koordinate: ${loc.latitude}, ${loc.longitude}`,
+                icon: 'fa-map-marker-alt'
+            });
+        }
+
+        // Search equipment
+        (loc.equipment || []).forEach(eq => {
+            if (eq.inventoryNumber.toLowerCase().includes(q) ||
+                eq.type.toLowerCase().includes(q) ||
+                (eq.ip && eq.ip.toLowerCase().includes(q)) ||
+                (eq.mac && eq.mac.toLowerCase().includes(q)) ||
+                (eq.installer && eq.installer.toLowerCase().includes(q))) {
+                results.push({
+                    type: 'equipment',
+                    id: eq.id,
+                    locationId: loc.id,
+                    title: `${eq.type} - ${eq.inventoryNumber}`,
+                    subtitle: `Lokacija: ${loc.name}`,
+                    icon: 'fa-microchip',
+                    status: eq.status || 'Aktivna'
+                });
+            }
+        });
+    });
+
+    if (results.length === 0) {
+        resultsList.innerHTML = '<p class="no-data">Nema rezultata pretrage</p>';
+    } else {
+        resultsList.innerHTML = results.map(r => `
+            <div class="search-result-item" onclick="${r.type === 'location' ?
+                `showLocationDetail('${r.id}')` :
+                `currentLocationId='${r.locationId}'; showEquipmentDetail('${r.id}')`}; clearSearch();">
+                <div class="search-result-icon">
+                    <i class="fas ${r.icon}"></i>
+                </div>
+                <div class="search-result-info">
+                    <div class="search-result-title">${r.title}</div>
+                    <div class="search-result-subtitle">${r.subtitle}</div>
+                </div>
+                ${r.status ? `<span class="status-badge" data-status="${r.status}">${r.status}</span>` : ''}
+            </div>
+        `).join('');
+    }
+
+    resultsDiv.style.display = 'block';
+}
+
+function clearSearch() {
+    document.getElementById('globalSearch').value = '';
+    document.getElementById('clearSearchBtn').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+function applyFilters() {
+    const typeFilter = document.getElementById('filterType').value;
+    const statusFilter = document.getElementById('filterStatus').value;
+    const locationFilter = document.getElementById('filterLocation').value;
+
+    if (!typeFilter && !statusFilter && !locationFilter) {
+        clearSearch();
+        return;
+    }
+
+    const results = [];
+
+    appData.locations.forEach(loc => {
+        if (locationFilter && loc.id !== locationFilter) return;
+
+        (loc.equipment || []).forEach(eq => {
+            if (typeFilter && eq.type !== typeFilter) return;
+            if (statusFilter && (eq.status || 'Aktivna') !== statusFilter) return;
+
+            results.push({
+                type: 'equipment',
+                id: eq.id,
+                locationId: loc.id,
+                title: `${eq.type} - ${eq.inventoryNumber}`,
+                subtitle: `Lokacija: ${loc.name}`,
+                icon: 'fa-microchip',
+                status: eq.status || 'Aktivna'
+            });
+        });
+    });
+
+    const resultsList = document.getElementById('searchResultsList');
+    const resultsDiv = document.getElementById('searchResults');
+
+    if (results.length === 0) {
+        resultsList.innerHTML = '<p class="no-data">Nema rezultata sa izabranim filterima</p>';
+    } else {
+        resultsList.innerHTML = results.map(r => `
+            <div class="search-result-item" onclick="currentLocationId='${r.locationId}'; showEquipmentDetail('${r.id}'); clearFilters();">
+                <div class="search-result-icon">
+                    <i class="fas ${r.icon}"></i>
+                </div>
+                <div class="search-result-info">
+                    <div class="search-result-title">${r.title}</div>
+                    <div class="search-result-subtitle">${r.subtitle}</div>
+                </div>
+                <span class="status-badge" data-status="${r.status}">${r.status}</span>
+            </div>
+        `).join('');
+    }
+
+    resultsDiv.style.display = 'block';
+}
+
+function clearFilters() {
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+function updateLocationFilter() {
+    const select = document.getElementById('filterLocation');
+    select.innerHTML = '<option value="">Sve lokacije</option>';
+    appData.locations.forEach(loc => {
+        select.innerHTML += `<option value="${loc.id}">${loc.name}</option>`;
+    });
+}
+
+function filterLocationEquipment(query) {
+    const statusFilter = document.getElementById('locationEquipmentStatus').value;
+    renderEquipmentGrid(appData.locations.find(l => l.id === currentLocationId), query, statusFilter);
 }
 
 // ===== DASHBOARD RENDERING =====
@@ -82,18 +378,25 @@ function renderDashboard() {
     renderWarrantyList();
     renderRecentEntries();
     renderLocationsGrid();
+    updateLocationFilter();
 }
 
 function updateStatistics() {
     const totalLocations = appData.locations.length;
     let totalEquipment = 0;
+    let activeEquipment = 0;
     let expiringWarranties = 0;
+    let onServiceCount = 0;
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     appData.locations.forEach(loc => {
-        totalEquipment += (loc.equipment || []).length;
         (loc.equipment || []).forEach(eq => {
+            totalEquipment++;
+            const status = eq.status || 'Aktivna';
+            if (status === 'Aktivna') activeEquipment++;
+            if (status === 'Na servisu') onServiceCount++;
+
             if (eq.warrantyDate) {
                 const warranty = new Date(eq.warrantyDate);
                 if (warranty <= thirtyDaysFromNow && warranty >= now) {
@@ -105,9 +408,10 @@ function updateStatistics() {
 
     document.getElementById('totalLocations').textContent = totalLocations;
     document.getElementById('totalEquipment').textContent = totalEquipment;
+    document.getElementById('activeEquipment').textContent = activeEquipment;
     document.getElementById('expiringWarranties').textContent = expiringWarranties;
+    document.getElementById('onServiceCount').textContent = onServiceCount;
 
-    // Last entry date
     let lastEntry = '-';
     if (appData.lastModified) {
         const date = new Date(appData.lastModified);
@@ -156,15 +460,16 @@ function renderWarrantyList() {
                     name: `${eq.type} - ${eq.inventoryNumber}`,
                     date: warranty,
                     daysUntil,
-                    locationName: loc.name
+                    locationName: loc.name,
+                    equipmentId: eq.id,
+                    locationId: loc.id
                 });
             }
         });
     });
 
-    // Sort by date and take first 3 that are expiring soon
     warranties.sort((a, b) => a.date - b.date);
-    const expiringSoon = warranties.filter(w => w.daysUntil <= 90).slice(0, 3);
+    const expiringSoon = warranties.filter(w => w.daysUntil <= 90).slice(0, 5);
 
     if (expiringSoon.length === 0) {
         container.innerHTML = '<p class="no-data">Nema garancija koje ističu uskoro</p>';
@@ -182,7 +487,7 @@ function renderWarrantyList() {
         }
 
         return `
-            <div class="warranty-item">
+            <div class="warranty-item" onclick="currentLocationId='${w.locationId}'; showEquipmentDetail('${w.equipmentId}')" style="cursor:pointer">
                 <div>
                     <span class="warranty-name">${w.name}</span>
                     <small style="display:block;color:var(--text-muted)">${w.locationName}</small>
@@ -198,33 +503,54 @@ function renderRecentEntries() {
     const entries = [];
 
     appData.locations.forEach(loc => {
-        entries.push({
-            type: 'Lokacija',
-            name: loc.name,
-            date: new Date(loc.createdAt || loc.id)
-        });
-        (loc.equipment || []).forEach(eq => {
+        // Location entries
+        if (loc.createdAt) {
             entries.push({
-                type: eq.type,
-                name: eq.inventoryNumber,
-                date: new Date(eq.createdAt || eq.id)
+                type: 'Lokacija dodana',
+                name: loc.name,
+                date: new Date(loc.createdAt),
+                icon: 'fa-map-marker-alt',
+                action: `showLocationDetail('${loc.id}')`
+            });
+        }
+
+        // Equipment entries
+        (loc.equipment || []).forEach(eq => {
+            if (eq.createdAt) {
+                entries.push({
+                    type: 'Oprema dodana',
+                    name: `${eq.type} - ${eq.inventoryNumber}`,
+                    date: new Date(eq.createdAt),
+                    icon: 'fa-plus-circle',
+                    action: `currentLocationId='${loc.id}'; showEquipmentDetail('${eq.id}')`
+                });
+            }
+
+            // History entries
+            (eq.history || []).forEach(h => {
+                entries.push({
+                    type: h.action,
+                    name: `${eq.type} - ${eq.inventoryNumber}`,
+                    date: new Date(h.date),
+                    icon: h.action.includes('Status') ? 'fa-exchange-alt' : 'fa-wrench',
+                    action: `currentLocationId='${loc.id}'; showEquipmentDetail('${eq.id}')`
+                });
             });
         });
     });
 
-    // Sort by date descending and take last 5
     entries.sort((a, b) => b.date - a.date);
     const recent = entries.slice(0, 5);
 
     if (recent.length === 0) {
-        container.innerHTML = '<p class="no-data">Nema nedavnih unosa</p>';
+        container.innerHTML = '<p class="no-data">Nema nedavnih aktivnosti</p>';
         return;
     }
 
     container.innerHTML = recent.map(e => `
-        <div class="entry-item">
+        <div class="entry-item" onclick="${e.action}" style="cursor:pointer">
             <div>
-                <span class="entry-name">${e.name}</span>
+                <span class="entry-name"><i class="fas ${e.icon}" style="color:var(--primary-green);margin-right:6px"></i>${e.name}</span>
                 <small style="display:block;color:var(--text-muted)">${e.type}</small>
             </div>
             <span class="entry-date">${formatDate(e.date)}</span>
@@ -291,7 +617,6 @@ function renderLocationDetail() {
     document.getElementById('locationDescription').textContent = location.description || 'Nema opisa';
     document.getElementById('locationEquipmentCount').textContent = (location.equipment || []).length;
 
-    // Image
     const imgContainer = document.getElementById('locationImage');
     const noImgDiv = document.getElementById('noLocationImage');
     if (location.photo) {
@@ -303,16 +628,29 @@ function renderLocationDetail() {
         noImgDiv.style.display = 'flex';
     }
 
-    // Equipment grid
     renderEquipmentGrid(location);
 }
 
-function renderEquipmentGrid(location) {
+function renderEquipmentGrid(location, searchQuery = '', statusFilter = '') {
     const container = document.getElementById('equipmentGrid');
-    const equipment = location.equipment || [];
+    let equipment = location.equipment || [];
+
+    // Apply filters
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        equipment = equipment.filter(eq =>
+            eq.inventoryNumber.toLowerCase().includes(q) ||
+            eq.type.toLowerCase().includes(q) ||
+            (eq.ip && eq.ip.includes(q))
+        );
+    }
+
+    if (statusFilter) {
+        equipment = equipment.filter(eq => (eq.status || 'Aktivna') === statusFilter);
+    }
 
     if (equipment.length === 0) {
-        container.innerHTML = '<p class="no-data">Nema opreme na ovoj lokaciji. Kliknite "Dodaj Opremu" za početak.</p>';
+        container.innerHTML = '<p class="no-data">Nema opreme koja odgovara kriterijumima.</p>';
         return;
     }
 
@@ -321,8 +659,12 @@ function renderEquipmentGrid(location) {
             ? `<img src="${eq.photo}" alt="${eq.type}">`
             : `<div class="no-image"><i class="fas fa-microchip"></i></div>`;
 
+        const status = eq.status || 'Aktivna';
+        const statusClass = getStatusDotClass(status);
+
         return `
-            <div class="equipment-card" onclick="showEquipmentDetail('${eq.id}')">
+            <div class="equipment-card" onclick="showEquipmentDetail('${eq.id}')" style="position:relative">
+                <div class="status-indicator-dot" style="background:var(--${statusClass === 'active' ? 'success' : statusClass === 'service' ? 'warning' : statusClass === 'broken' ? 'danger' : 'text-muted'})"></div>
                 <div class="equipment-card-image">
                     ${imageHtml}
                 </div>
@@ -332,7 +674,7 @@ function renderEquipmentGrid(location) {
                     <div class="equipment-card-info">
                         ${eq.ip ? `<span><i class="fas fa-network-wired"></i> ${eq.ip}</span>` : ''}
                         ${eq.installDate ? `<span><i class="fas fa-calendar"></i> ${formatDate(new Date(eq.installDate))}</span>` : ''}
-                        ${eq.installer ? `<span><i class="fas fa-user"></i> ${eq.installer}</span>` : ''}
+                        <span><i class="fas fa-circle" style="color:var(--${statusClass === 'active' ? 'success' : statusClass === 'service' ? 'warning' : statusClass === 'broken' ? 'danger' : 'text-muted'});font-size:8px"></i> ${status}</span>
                     </div>
                 </div>
             </div>
@@ -354,7 +696,14 @@ function renderEquipmentDetail() {
         return;
     }
 
+    const status = equipment.status || 'Aktivna';
+
     document.getElementById('equipmentTitle').textContent = `${equipment.type} - ${equipment.inventoryNumber}`;
+
+    // Status badge
+    const statusBadge = document.getElementById('eqStatusBadge');
+    statusBadge.textContent = status;
+    statusBadge.setAttribute('data-status', status);
 
     // Location image
     const locImgContainer = document.getElementById('equipmentLocationImage');
@@ -376,11 +725,12 @@ function renderEquipmentDetail() {
     document.getElementById('eqLocation').textContent = location.name;
     document.getElementById('eqInventory').textContent = equipment.inventoryNumber || '-';
     document.getElementById('eqType').textContent = equipment.type || '-';
+    document.getElementById('eqStatus').textContent = status;
     document.getElementById('eqIP').textContent = equipment.ip || '-';
     document.getElementById('eqMAC').textContent = equipment.mac || '-';
-    document.getElementById('eqX').textContent = equipment.x !== undefined ? `${equipment.x} cm` : '-';
-    document.getElementById('eqY').textContent = equipment.y !== undefined ? `${equipment.y} cm` : '-';
-    document.getElementById('eqZ').textContent = equipment.z !== undefined ? `${equipment.z} cm` : '-';
+    document.getElementById('eqX').textContent = equipment.x !== undefined && equipment.x !== null ? `${equipment.x} cm` : '-';
+    document.getElementById('eqY').textContent = equipment.y !== undefined && equipment.y !== null ? `${equipment.y} cm` : '-';
+    document.getElementById('eqZ').textContent = equipment.z !== undefined && equipment.z !== null ? `${equipment.z} cm` : '-';
     document.getElementById('eqInstallDate').textContent = equipment.installDate ? formatDate(new Date(equipment.installDate)) : '-';
     document.getElementById('eqInstaller').textContent = equipment.installer || '-';
     document.getElementById('eqTester').textContent = equipment.tester || '-';
@@ -412,8 +762,79 @@ function renderEquipmentDetail() {
         document.getElementById('eqWarrantyStatus').style.color = '';
     }
 
+    // Maintenance
+    renderMaintenanceInfo(equipment);
+
     // Documents
     renderDocumentsList(equipment);
+
+    // History
+    renderHistoryLog(equipment);
+}
+
+function renderMaintenanceInfo(equipment) {
+    const container = document.getElementById('maintenanceInfo');
+    const maintenance = equipment.maintenance || [];
+
+    if (maintenance.length === 0) {
+        container.innerHTML = '<p class="no-data">Nema servisnih zapisa</p>';
+        return;
+    }
+
+    // Sort by date descending
+    const sorted = [...maintenance].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    container.innerHTML = sorted.slice(0, 3).map(m => `
+        <div class="maintenance-item">
+            <div class="maintenance-header">
+                <span class="maintenance-type">${m.type}</span>
+                <span class="maintenance-date">${formatDate(new Date(m.date))}</span>
+            </div>
+            <div class="maintenance-description">${m.description || '-'}</div>
+            <div class="maintenance-tech"><i class="fas fa-user"></i> ${m.technician || 'Nepoznato'}</div>
+        </div>
+    `).join('');
+}
+
+function renderHistoryLog(equipment) {
+    const container = document.getElementById('historyLog');
+    const history = equipment.history || [];
+
+    if (history.length === 0) {
+        container.innerHTML = '<p class="no-data">Nema zabeleženih promena</p>';
+        return;
+    }
+
+    // Sort by date descending
+    const sorted = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    container.innerHTML = sorted.map(h => {
+        let iconClass = 'fa-edit';
+        let itemClass = '';
+
+        if (h.action.includes('Status')) {
+            iconClass = 'fa-exchange-alt';
+            itemClass = 'status-change';
+        } else if (h.action.includes('Servis')) {
+            iconClass = 'fa-wrench';
+            itemClass = 'maintenance';
+        } else if (h.action.includes('Kreiran')) {
+            iconClass = 'fa-plus-circle';
+        }
+
+        return `
+            <div class="history-item ${itemClass}">
+                <div class="history-icon">
+                    <i class="fas ${iconClass}"></i>
+                </div>
+                <div class="history-content">
+                    <div class="history-title">${h.action}</div>
+                    ${h.details ? `<div class="history-details">${h.details}</div>` : ''}
+                    <div class="history-date">${formatDateTime(new Date(h.date))}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderDocumentsList(equipment) {
@@ -443,12 +864,115 @@ function renderDocumentsList(equipment) {
     `).join('');
 }
 
+// ===== QR CODE =====
+function generateEquipmentQR() {
+    const location = appData.locations.find(l => l.id === currentLocationId);
+    if (!location) return;
+
+    const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
+    if (!equipment) return;
+
+    // Small QR preview
+    const smallContainer = document.getElementById('equipmentQRSmall');
+    smallContainer.innerHTML = '';
+
+    const qrData = JSON.stringify({
+        id: equipment.id,
+        inv: equipment.inventoryNumber,
+        type: equipment.type,
+        loc: location.name,
+        gps: `${location.latitude},${location.longitude}`
+    });
+
+    qrCodeSmallInstance = new QRCode(smallContainer, {
+        text: qrData,
+        width: 100,
+        height: 100,
+        colorDark: '#000000',
+        colorLight: '#ffffff'
+    });
+}
+
+function showQRModal() {
+    const location = appData.locations.find(l => l.id === currentLocationId);
+    if (!location) return;
+
+    const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
+    if (!equipment) return;
+
+    // Update label info
+    document.getElementById('qrInvNumber').textContent = equipment.inventoryNumber;
+    document.getElementById('qrType').textContent = equipment.type;
+    document.getElementById('qrLocation').textContent = location.name;
+    document.getElementById('qrGPS').textContent = `${location.latitude}, ${location.longitude}`;
+
+    // Generate large QR
+    const largeContainer = document.getElementById('qrCodeLarge');
+    largeContainer.innerHTML = '';
+
+    const qrData = JSON.stringify({
+        id: equipment.id,
+        inv: equipment.inventoryNumber,
+        type: equipment.type,
+        loc: location.name,
+        gps: `${location.latitude},${location.longitude}`,
+        ip: equipment.ip || '',
+        mac: equipment.mac || ''
+    });
+
+    qrCodeInstance = new QRCode(largeContainer, {
+        text: qrData,
+        width: 150,
+        height: 150,
+        colorDark: '#000000',
+        colorLight: '#ffffff'
+    });
+
+    openModal('qrModal');
+}
+
+function printQRLabel() {
+    const labelContent = document.getElementById('qrLabelPreview').outerHTML;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>QR Naljepnica</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .qr-label-preview { max-width: 350px; margin: 0 auto; border: 1px solid #ddd; }
+                .qr-label-header { background: linear-gradient(135deg, #00cc6a 0%, #00ff88 100%); color: #000; padding: 10px; font-weight: 700; text-align: center; }
+                .qr-label-body { display: flex; gap: 20px; padding: 15px; align-items: center; }
+                .qr-label-info { text-align: left; font-size: 14px; }
+                .qr-info-row { margin-bottom: 6px; }
+                .qr-info-row strong { color: #00aa55; }
+                .qr-label-footer { background: #f0f0f0; padding: 8px; text-align: center; font-size: 11px; color: #666; }
+            </style>
+        </head>
+        <body>${labelContent}</body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+function downloadQRImage() {
+    const canvas = document.querySelector('#qrCodeLarge canvas');
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.download = `qr_${currentEquipmentId}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
 // ===== LOCATION CRUD =====
 function showAddLocationModal() {
     document.getElementById('locationModalTitle').textContent = 'Dodaj Lokaciju';
     document.getElementById('locationForm').reset();
     document.getElementById('locationId').value = '';
     document.getElementById('locPhotoPreview').innerHTML = '';
+    document.getElementById('locName').placeholder = 'Npr. Naplatni portal 01';
     openModal('locationModal');
 }
 
@@ -495,7 +1019,6 @@ function saveLocation(event) {
 
     photoPromise.then(photo => {
         if (id) {
-            // Edit existing
             const location = appData.locations.find(l => l.id === id);
             if (location) {
                 location.name = name;
@@ -505,7 +1028,6 @@ function saveLocation(event) {
                 if (photo) location.photo = photo;
             }
         } else {
-            // Add new
             const newLocation = {
                 id: generateId(),
                 name,
@@ -522,6 +1044,8 @@ function saveLocation(event) {
         saveData();
         closeModal('locationModal');
         renderDashboard();
+        renderStructureTree();
+        updateLocationFilter();
 
         if (currentLocationId && document.getElementById('locationDetailView').classList.contains('active')) {
             renderLocationDetail();
@@ -558,6 +1082,7 @@ function showAddEquipmentModal() {
     document.getElementById('equipmentId').value = '';
     document.getElementById('equipmentLocationId').value = currentLocationId;
     document.getElementById('eqFormInstallDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('eqFormStatus').value = 'Aktivna';
     document.getElementById('eqPhotoPreview').innerHTML = '';
     openModal('equipmentModal');
 }
@@ -574,6 +1099,7 @@ function editEquipment(equipmentId) {
     document.getElementById('equipmentLocationId').value = currentLocationId;
     document.getElementById('eqFormType').value = equipment.type || '';
     document.getElementById('eqFormInventory').value = equipment.inventoryNumber || '';
+    document.getElementById('eqFormStatus').value = equipment.status || 'Aktivna';
     document.getElementById('eqFormIP').value = equipment.ip || '';
     document.getElementById('eqFormMAC').value = equipment.mac || '';
     document.getElementById('eqFormX').value = equipment.x || '';
@@ -611,6 +1137,7 @@ function saveEquipment(event) {
 
     const type = document.getElementById('eqFormType').value;
     const inventoryNumber = document.getElementById('eqFormInventory').value.trim();
+    const status = document.getElementById('eqFormStatus').value;
     const ip = document.getElementById('eqFormIP').value.trim();
     const mac = document.getElementById('eqFormMAC').value.trim();
     const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
@@ -631,11 +1158,17 @@ function saveEquipment(event) {
 
     photoPromise.then(photo => {
         if (id) {
-            // Edit existing
             const equipment = location.equipment.find(e => e.id === id);
             if (equipment) {
+                // Track changes
+                const changes = [];
+                if (equipment.status !== status) {
+                    changes.push(`Status: ${equipment.status || 'Aktivna'} → ${status}`);
+                }
+
                 equipment.type = type;
                 equipment.inventoryNumber = inventoryNumber;
+                equipment.status = status;
                 equipment.ip = ip;
                 equipment.mac = mac;
                 equipment.x = x;
@@ -647,13 +1180,23 @@ function saveEquipment(event) {
                 equipment.tester = tester;
                 equipment.notes = notes;
                 if (photo) equipment.photo = photo;
+
+                // Add to history
+                if (changes.length > 0) {
+                    if (!equipment.history) equipment.history = [];
+                    equipment.history.push({
+                        date: new Date().toISOString(),
+                        action: 'Izmena podataka',
+                        details: changes.join(', ')
+                    });
+                }
             }
         } else {
-            // Add new
             const newEquipment = {
                 id: generateId(),
                 type,
                 inventoryNumber,
+                status,
                 ip,
                 mac,
                 x,
@@ -666,6 +1209,12 @@ function saveEquipment(event) {
                 notes,
                 photo,
                 documents: [],
+                maintenance: [],
+                history: [{
+                    date: new Date().toISOString(),
+                    action: 'Oprema kreirana',
+                    details: `${type} - ${inventoryNumber}`
+                }],
                 createdAt: new Date().toISOString()
             };
             location.equipment.push(newEquipment);
@@ -674,6 +1223,7 @@ function saveEquipment(event) {
         saveData();
         closeModal('equipmentModal');
         renderLocationDetail();
+        renderStructureTree();
 
         if (currentEquipmentId && document.getElementById('equipmentDetailView').classList.contains('active')) {
             renderEquipmentDetail();
@@ -707,6 +1257,92 @@ function deleteEquipment(equipmentId) {
 
 function deleteCurrentEquipment() {
     confirmDeleteEquipment(currentEquipmentId);
+}
+
+// ===== STATUS CHANGE =====
+function showChangeStatusModal() {
+    const location = appData.locations.find(l => l.id === currentLocationId);
+    if (!location) return;
+
+    const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
+    if (!equipment) return;
+
+    document.getElementById('newStatus').value = equipment.status || 'Aktivna';
+    document.getElementById('statusReason').value = '';
+    openModal('statusModal');
+}
+
+function changeEquipmentStatus(event) {
+    event.preventDefault();
+
+    const location = appData.locations.find(l => l.id === currentLocationId);
+    if (!location) return;
+
+    const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
+    if (!equipment) return;
+
+    const newStatus = document.getElementById('newStatus').value;
+    const reason = document.getElementById('statusReason').value.trim();
+    const oldStatus = equipment.status || 'Aktivna';
+
+    if (newStatus !== oldStatus) {
+        equipment.status = newStatus;
+
+        if (!equipment.history) equipment.history = [];
+        equipment.history.push({
+            date: new Date().toISOString(),
+            action: `Status promenjen: ${oldStatus} → ${newStatus}`,
+            details: reason || 'Bez dodatnog objašnjenja'
+        });
+
+        saveData();
+    }
+
+    closeModal('statusModal');
+    renderEquipmentDetail();
+    renderStructureTree();
+}
+
+// ===== MAINTENANCE =====
+function showAddMaintenanceModal() {
+    document.getElementById('maintenanceForm').reset();
+    document.getElementById('maintDate').value = new Date().toISOString().split('T')[0];
+    openModal('maintenanceModal');
+}
+
+function addMaintenanceRecord(event) {
+    event.preventDefault();
+
+    const location = appData.locations.find(l => l.id === currentLocationId);
+    if (!location) return;
+
+    const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
+    if (!equipment) return;
+
+    if (!equipment.maintenance) equipment.maintenance = [];
+    if (!equipment.history) equipment.history = [];
+
+    const record = {
+        id: generateId(),
+        type: document.getElementById('maintType').value,
+        date: document.getElementById('maintDate').value,
+        technician: document.getElementById('maintTechnician').value.trim(),
+        description: document.getElementById('maintDescription').value.trim(),
+        cost: document.getElementById('maintCost').value ? parseFloat(document.getElementById('maintCost').value) : null,
+        nextDate: document.getElementById('maintNextDate').value || null
+    };
+
+    equipment.maintenance.push(record);
+
+    equipment.history.push({
+        date: new Date().toISOString(),
+        action: `Servis: ${record.type}`,
+        details: record.description || `Serviser: ${record.technician || 'Nepoznato'}`
+    });
+
+    saveData();
+    closeModal('maintenanceModal');
+    renderEquipmentDetail();
 }
 
 // ===== DOCUMENT MANAGEMENT =====
@@ -781,7 +1417,6 @@ function addToCalendar() {
     const details = encodeURIComponent(`Lokacija: ${location.name}\nInventarski broj: ${equipment.inventoryNumber}`);
     const dateStr = warranty.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-    // Google Calendar URL
     const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateStr}/${dateStr}&details=${details}`;
     window.open(calendarUrl, '_blank');
 }
@@ -808,6 +1443,7 @@ function printLocationReport() {
 
 function generateEquipmentReportHTML(location, equipment) {
     const now = new Date();
+    const status = equipment.status || 'Aktivna';
     let warrantyStatus = '-';
     if (equipment.warrantyDate) {
         const warranty = new Date(equipment.warrantyDate);
@@ -838,6 +1474,10 @@ function generateEquipmentReportHTML(location, equipment) {
                 <div class="print-info-item">
                     <span class="print-info-label">Inventarski Broj</span>
                     <span class="print-info-value">${equipment.inventoryNumber}</span>
+                </div>
+                <div class="print-info-item">
+                    <span class="print-info-label">Status</span>
+                    <span class="print-info-value">${status}</span>
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">Datum Postavljanja</span>
@@ -932,59 +1572,14 @@ function generateLocationReportHTML(location) {
             <tr>
                 <td>${eq.type}</td>
                 <td>${eq.inventoryNumber}</td>
+                <td>${eq.status || 'Aktivna'}</td>
                 <td>${eq.ip || '-'}</td>
-                <td>${eq.mac || '-'}</td>
                 <td>${eq.installDate ? formatDate(new Date(eq.installDate)) : '-'}</td>
                 <td>${eq.installer || '-'}</td>
                 <td>${eq.warrantyDate ? formatDate(new Date(eq.warrantyDate)) : '-'}</td>
             </tr>
         `).join('');
     }
-
-    // Equipment details
-    let detailedReports = equipment.map(eq => {
-        let warrantyStatus = '-';
-        if (eq.warrantyDate) {
-            const warranty = new Date(eq.warrantyDate);
-            const daysUntil = Math.ceil((warranty - now) / (1000 * 60 * 60 * 24));
-            if (daysUntil < 0) warrantyStatus = 'Istekla';
-            else if (daysUntil <= 30) warrantyStatus = `Ističe za ${daysUntil} dana`;
-            else warrantyStatus = `Aktivna (${daysUntil} dana)`;
-        }
-
-        return `
-            <div class="print-section" style="page-break-inside: avoid;">
-                <h3>${eq.type} - ${eq.inventoryNumber}</h3>
-                <div class="print-info-grid">
-                    <div class="print-info-item">
-                        <span class="print-info-label">IP Adresa</span>
-                        <span class="print-info-value">${eq.ip || '-'}</span>
-                    </div>
-                    <div class="print-info-item">
-                        <span class="print-info-label">MAC Adresa</span>
-                        <span class="print-info-value">${eq.mac || '-'}</span>
-                    </div>
-                    <div class="print-info-item">
-                        <span class="print-info-label">Pozicija (X, Y, Z)</span>
-                        <span class="print-info-value">${eq.x || '-'}, ${eq.y || '-'}, ${eq.z || '-'} cm</span>
-                    </div>
-                    <div class="print-info-item">
-                        <span class="print-info-label">Instalirao</span>
-                        <span class="print-info-value">${eq.installer || '-'}</span>
-                    </div>
-                    <div class="print-info-item">
-                        <span class="print-info-label">Testirao</span>
-                        <span class="print-info-value">${eq.tester || '-'}</span>
-                    </div>
-                    <div class="print-info-item">
-                        <span class="print-info-label">Garancija</span>
-                        <span class="print-info-value">${eq.warrantyDate ? formatDate(new Date(eq.warrantyDate)) : '-'} (${warrantyStatus})</span>
-                    </div>
-                </div>
-                ${eq.notes ? `<p style="margin-top: 10px;"><strong>Napomene:</strong> ${eq.notes}</p>` : ''}
-            </div>
-        `;
-    }).join('');
 
     return `
         <div class="print-header">
@@ -1027,8 +1622,8 @@ function generateLocationReportHTML(location) {
                         <tr>
                             <th>Tip</th>
                             <th>Inv. Broj</th>
+                            <th>Status</th>
                             <th>IP</th>
-                            <th>MAC</th>
                             <th>Datum Post.</th>
                             <th>Instalirao</th>
                             <th>Garancija Do</th>
@@ -1040,9 +1635,6 @@ function generateLocationReportHTML(location) {
                 </table>
             ` : '<p>Nema opreme na ovoj lokaciji.</p>'}
         </div>
-
-        <h2 style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #00cc6a;">Detaljni Izveštaji Opreme</h2>
-        ${detailedReports || '<p>Nema opreme za detaljan izveštaj.</p>'}
     `;
 }
 
@@ -1053,7 +1645,6 @@ function showPrintModal(content) {
 
 // ===== EXPORT/IMPORT =====
 function exportData() {
-    // Update last backup time
     appData.lastBackup = new Date().toISOString();
     saveData();
 
@@ -1066,7 +1657,6 @@ function exportData() {
     link.click();
     URL.revokeObjectURL(url);
 
-    // Update status
     updateDataStatus();
     hideBackupToast();
 }
@@ -1088,6 +1678,8 @@ function importData(event) {
                         saveData();
                         closeModal('confirmModal');
                         renderDashboard();
+                        renderStructureTree();
+                        updateLocationFilter();
                         alert('Podaci su uspešno importovani!');
                     }
                 );
@@ -1147,6 +1739,17 @@ function formatDate(date) {
     });
 }
 
+function formatDateTime(date) {
+    if (!date || isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('sr-RS', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 // Close modals when clicking outside
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal')) {
@@ -1171,8 +1774,13 @@ function loadSettings() {
             appSettings = JSON.parse(stored);
         } catch (e) {
             console.error('Error loading settings:', e);
-            appSettings = { dontShowWelcome: false };
+            appSettings = { dontShowWelcome: false, sidebarOpen: false };
         }
+    }
+
+    // Apply sidebar state
+    if (appSettings.sidebarOpen) {
+        document.getElementById('structureSidebar').classList.add('active');
     }
 }
 
@@ -1192,7 +1800,6 @@ function showHelpModal() {
 }
 
 function checkShowWelcome() {
-    // Show welcome/help on first visit
     if (!appSettings.dontShowWelcome && appData.locations.length === 0) {
         setTimeout(() => {
             showHelpModal();
@@ -1226,10 +1833,8 @@ function updateDataStatus() {
 
 // ===== BACKUP REMINDER =====
 function checkBackupReminder() {
-    // Don't show if no data
     if (appData.locations.length === 0) return;
 
-    // Check if backup is needed
     if (!appData.lastBackup) {
         showBackupToast();
         return;
@@ -1250,4 +1855,15 @@ function showBackupToast() {
 
 function hideBackupToast() {
     document.getElementById('backupToast').classList.remove('active');
+}
+
+// Placeholder functions for stat card clicks
+function showStatusBreakdown() {
+    document.getElementById('filterStatus').value = 'Aktivna';
+    applyFilters();
+}
+
+function showExpiringWarranties() {
+    // Scroll to warranty list
+    document.getElementById('warrantyList').scrollIntoView({ behavior: 'smooth' });
 }

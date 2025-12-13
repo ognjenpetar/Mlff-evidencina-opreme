@@ -6,6 +6,8 @@
     <title>Evidencija MLFF Opreme - Orion E-mobility</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -23,6 +25,9 @@
                     <i class="fas fa-database"></i>
                     <span id="dataStatusText">Podaci sačuvani</span>
                 </div>
+                <button class="btn btn-icon" onclick="toggleStructurePanel()" title="Struktura">
+                    <i class="fas fa-sitemap"></i>
+                </button>
                 <button class="btn btn-icon" onclick="exportData()" title="Napravi backup">
                     <i class="fas fa-download"></i>
                 </button>
@@ -36,282 +41,420 @@
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Dashboard View -->
-            <div id="dashboardView" class="view active">
-                <div class="dashboard-header">
-                    <h2><i class="fas fa-map-marker-alt"></i> Pregled Lokacija</h2>
-                    <button class="btn btn-primary" onclick="showAddLocationModal()">
-                        <i class="fas fa-plus"></i> Dodaj Lokaciju
+        <!-- Breadcrumb Navigation -->
+        <nav class="breadcrumb" id="breadcrumb">
+            <a href="#" onclick="showDashboard(); return false;" class="breadcrumb-item">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+        </nav>
+
+        <!-- Main Layout with Sidebar -->
+        <div class="main-layout">
+            <!-- Structure Sidebar -->
+            <aside class="structure-sidebar" id="structureSidebar">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-sitemap"></i> Struktura</h3>
+                    <button class="btn btn-icon btn-small" onclick="toggleStructurePanel()">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
-
-                <!-- Statistics Panel -->
-                <div class="statistics-panel">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-map-marked-alt"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="totalLocations">0</span>
-                            <span class="stat-label">Ukupno Lokacija</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-microchip"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="totalEquipment">0</span>
-                            <span class="stat-label">Ukupno Opreme</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="expiringWarranties">0</span>
-                            <span class="stat-label">Garancija Ističe</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="lastEntryDate">-</span>
-                            <span class="stat-label">Poslednji Unos</span>
-                        </div>
-                    </div>
+                <div class="structure-tree" id="structureTree">
+                    <!-- Tree will be rendered here -->
                 </div>
+            </aside>
 
-                <!-- Equipment Summary -->
-                <div class="summary-panels">
-                    <div class="summary-card">
-                        <h3><i class="fas fa-list"></i> Lista Opreme po Tipu</h3>
-                        <div id="equipmentTypeList" class="equipment-type-list">
-                            <p class="no-data">Nema unesene opreme</p>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <h3><i class="fas fa-calendar-times"></i> Garancije koje Ističu</h3>
-                        <div id="warrantyList" class="warranty-list">
-                            <p class="no-data">Nema garancija koje ističu</p>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <h3><i class="fas fa-history"></i> Poslednji Unosi</h3>
-                        <div id="recentEntries" class="recent-entries">
-                            <p class="no-data">Nema nedavnih unosa</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Locations Grid -->
-                <div class="locations-section">
-                    <h3><i class="fas fa-building"></i> Sve Lokacije</h3>
-                    <div id="locationsGrid" class="locations-grid">
-                        <p class="no-data">Nema unesenih lokacija. Kliknite "Dodaj Lokaciju" za početak.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Location Detail View -->
-            <div id="locationDetailView" class="view">
-                <div class="view-header">
-                    <button class="btn btn-back" onclick="showDashboard()">
-                        <i class="fas fa-arrow-left"></i> Nazad
-                    </button>
-                    <h2 id="locationTitle">Detalji Lokacije</h2>
-                    <div class="view-actions">
-                        <button class="btn btn-secondary" onclick="printLocationReport()">
-                            <i class="fas fa-print"></i> Print Izveštaj
-                        </button>
-                        <button class="btn btn-primary" onclick="showAddEquipmentModal()">
-                            <i class="fas fa-plus"></i> Dodaj Opremu
-                        </button>
-                    </div>
-                </div>
-
-                <div class="location-detail-content">
-                    <div class="location-info-panel">
-                        <div class="location-image-container">
-                            <img id="locationImage" src="" alt="Fotografija lokacije">
-                            <div class="no-image" id="noLocationImage">
-                                <i class="fas fa-image"></i>
-                                <span>Nema fotografije</span>
-                            </div>
-                        </div>
-                        <div class="location-details">
-                            <div class="detail-row">
-                                <span class="detail-label"><i class="fas fa-map-pin"></i> Koordinate:</span>
-                                <span class="detail-value" id="locationCoords">-</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label"><i class="fas fa-align-left"></i> Opis:</span>
-                                <span class="detail-value" id="locationDescription">-</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label"><i class="fas fa-microchip"></i> Broj opreme:</span>
-                                <span class="detail-value" id="locationEquipmentCount">0</span>
-                            </div>
-                        </div>
-                        <div class="location-actions">
-                            <button class="btn btn-secondary" onclick="editCurrentLocation()">
-                                <i class="fas fa-edit"></i> Izmeni Lokaciju
-                            </button>
-                            <button class="btn btn-danger" onclick="deleteCurrentLocation()">
-                                <i class="fas fa-trash"></i> Obriši Lokaciju
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Dashboard View -->
+                <div id="dashboardView" class="view active">
+                    <!-- Search Bar -->
+                    <div class="search-section">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="globalSearch" placeholder="Pretraži opremu, lokacije, inventarske brojeve..." oninput="performSearch(this.value)">
+                            <button class="btn btn-icon btn-small" onclick="clearSearch()" id="clearSearchBtn" style="display:none">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
+                        <div class="filter-buttons">
+                            <select id="filterType" onchange="applyFilters()">
+                                <option value="">Svi tipovi</option>
+                                <option value="Kamera">Kamera</option>
+                                <option value="Senzor">Senzor</option>
+                                <option value="Kontroler">Kontroler</option>
+                                <option value="Switch">Switch</option>
+                                <option value="Router">Router</option>
+                                <option value="Server">Server</option>
+                                <option value="UPS">UPS</option>
+                                <option value="Antena">Antena</option>
+                                <option value="RFID čitač">RFID čitač</option>
+                                <option value="Display">Display</option>
+                                <option value="Barrier">Barrier</option>
+                            </select>
+                            <select id="filterStatus" onchange="applyFilters()">
+                                <option value="">Svi statusi</option>
+                                <option value="Aktivna">Aktivna</option>
+                                <option value="Na servisu">Na servisu</option>
+                                <option value="Neispravna">Neispravna</option>
+                                <option value="Povučena">Povučena</option>
+                            </select>
+                            <select id="filterLocation" onchange="applyFilters()">
+                                <option value="">Sve lokacije</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="equipment-section">
-                        <h3><i class="fas fa-tools"></i> Oprema na Lokaciji</h3>
-                        <div id="equipmentGrid" class="equipment-grid">
-                            <p class="no-data">Nema opreme na ovoj lokaciji.</p>
+                    <!-- Search Results -->
+                    <div id="searchResults" class="search-results" style="display:none">
+                        <div class="search-results-header">
+                            <h3><i class="fas fa-search"></i> Rezultati pretrage</h3>
+                            <button class="btn btn-secondary btn-small" onclick="clearSearch()">
+                                <i class="fas fa-times"></i> Zatvori
+                            </button>
+                        </div>
+                        <div id="searchResultsList" class="search-results-list"></div>
+                    </div>
+
+                    <div class="dashboard-header">
+                        <h2><i class="fas fa-map-marker-alt"></i> Pregled Lokacija</h2>
+                        <button class="btn btn-primary" onclick="showAddLocationModal()">
+                            <i class="fas fa-plus"></i> Dodaj Lokaciju
+                        </button>
+                    </div>
+
+                    <!-- Statistics Panel -->
+                    <div class="statistics-panel">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-map-marked-alt"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalLocations">0</span>
+                                <span class="stat-label">Ukupno Lokacija</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-microchip"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalEquipment">0</span>
+                                <span class="stat-label">Ukupno Opreme</span>
+                            </div>
+                        </div>
+                        <div class="stat-card clickable" onclick="showStatusBreakdown()">
+                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="activeEquipment">0</span>
+                                <span class="stat-label">Aktivna Oprema</span>
+                            </div>
+                        </div>
+                        <div class="stat-card warning-card" onclick="showExpiringWarranties()">
+                            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="expiringWarranties">0</span>
+                                <span class="stat-label">Garancija Ističe</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="onServiceCount">0</span>
+                                <span class="stat-label">Na Servisu</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="lastEntryDate">-</span>
+                                <span class="stat-label">Poslednji Unos</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Equipment Summary -->
+                    <div class="summary-panels">
+                        <div class="summary-card">
+                            <h3><i class="fas fa-list"></i> Lista Opreme po Tipu</h3>
+                            <div id="equipmentTypeList" class="equipment-type-list">
+                                <p class="no-data">Nema unesene opreme</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <h3><i class="fas fa-calendar-times"></i> Garancije koje Ističu</h3>
+                            <div id="warrantyList" class="warranty-list">
+                                <p class="no-data">Nema garancija koje ističu</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <h3><i class="fas fa-history"></i> Poslednje Aktivnosti</h3>
+                            <div id="recentEntries" class="recent-entries">
+                                <p class="no-data">Nema nedavnih aktivnosti</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Locations Grid -->
+                    <div class="locations-section">
+                        <h3><i class="fas fa-building"></i> Sve Lokacije</h3>
+                        <div id="locationsGrid" class="locations-grid">
+                            <p class="no-data">Nema unesenih lokacija. Kliknite "Dodaj Lokaciju" za početak.</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Equipment Detail View -->
-            <div id="equipmentDetailView" class="view">
-                <div class="view-header">
-                    <button class="btn btn-back" onclick="showLocationDetail(currentLocationId)">
-                        <i class="fas fa-arrow-left"></i> Nazad na Lokaciju
-                    </button>
-                    <h2 id="equipmentTitle">Detalji Opreme</h2>
-                    <div class="view-actions">
-                        <button class="btn btn-secondary" onclick="printEquipmentReport()">
-                            <i class="fas fa-print"></i> Print Izveštaj
+                <!-- Location Detail View -->
+                <div id="locationDetailView" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-back" onclick="showDashboard()">
+                            <i class="fas fa-arrow-left"></i> Nazad
                         </button>
+                        <h2 id="locationTitle">Detalji Lokacije</h2>
+                        <div class="view-actions">
+                            <button class="btn btn-secondary" onclick="printLocationReport()">
+                                <i class="fas fa-print"></i> Print Izveštaj
+                            </button>
+                            <button class="btn btn-primary" onclick="showAddEquipmentModal()">
+                                <i class="fas fa-plus"></i> Dodaj Opremu
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="equipment-detail-content">
-                    <div class="equipment-images">
-                        <div class="image-section">
-                            <h4>Fotografija Lokacije</h4>
-                            <div class="image-preview" id="equipmentLocationImage">
-                                <div class="no-image">
+                    <div class="location-detail-content">
+                        <div class="location-info-panel">
+                            <div class="location-image-container">
+                                <img id="locationImage" src="" alt="Fotografija lokacije">
+                                <div class="no-image" id="noLocationImage">
                                     <i class="fas fa-image"></i>
+                                    <span>Nema fotografije</span>
                                 </div>
                             </div>
-                        </div>
-                        <div class="image-section">
-                            <h4>Fotografija Opreme</h4>
-                            <div class="image-preview" id="equipmentImage">
-                                <div class="no-image">
-                                    <i class="fas fa-image"></i>
+                            <div class="location-details">
+                                <div class="detail-row">
+                                    <span class="detail-label"><i class="fas fa-map-pin"></i> Koordinate:</span>
+                                    <span class="detail-value" id="locationCoords">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label"><i class="fas fa-align-left"></i> Opis:</span>
+                                    <span class="detail-value" id="locationDescription">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label"><i class="fas fa-microchip"></i> Broj opreme:</span>
+                                    <span class="detail-value" id="locationEquipmentCount">0</span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="equipment-info-grid">
-                        <div class="info-card">
-                            <h4><i class="fas fa-info-circle"></i> Osnovne Informacije</h4>
-                            <div class="info-rows">
-                                <div class="info-row">
-                                    <span class="info-label">Lokacija:</span>
-                                    <span class="info-value" id="eqLocation">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Inventarski broj:</span>
-                                    <span class="info-value" id="eqInventory">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Tip opreme:</span>
-                                    <span class="info-value" id="eqType">-</span>
-                                </div>
+                            <div class="location-actions">
+                                <button class="btn btn-secondary" onclick="editCurrentLocation()">
+                                    <i class="fas fa-edit"></i> Izmeni Lokaciju
+                                </button>
+                                <button class="btn btn-danger" onclick="deleteCurrentLocation()">
+                                    <i class="fas fa-trash"></i> Obriši Lokaciju
+                                </button>
                             </div>
                         </div>
 
-                        <div class="info-card">
-                            <h4><i class="fas fa-network-wired"></i> Mrežne Informacije</h4>
-                            <div class="info-rows">
-                                <div class="info-row">
-                                    <span class="info-label">IP Adresa:</span>
-                                    <span class="info-value" id="eqIP">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">MAC Adresa:</span>
-                                    <span class="info-value" id="eqMAC">-</span>
-                                </div>
-                            </div>
+                        <!-- Equipment Filter for Location -->
+                        <div class="location-equipment-filter">
+                            <input type="text" id="locationEquipmentSearch" placeholder="Pretraži opremu na lokaciji..." oninput="filterLocationEquipment(this.value)">
+                            <select id="locationEquipmentStatus" onchange="filterLocationEquipment()">
+                                <option value="">Svi statusi</option>
+                                <option value="Aktivna">Aktivna</option>
+                                <option value="Na servisu">Na servisu</option>
+                                <option value="Neispravna">Neispravna</option>
+                                <option value="Povučena">Povučena</option>
+                            </select>
                         </div>
 
-                        <div class="info-card">
-                            <h4><i class="fas fa-ruler-combined"></i> Pozicija (cm)</h4>
-                            <div class="info-rows">
-                                <div class="info-row">
-                                    <span class="info-label">X:</span>
-                                    <span class="info-value" id="eqX">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Y:</span>
-                                    <span class="info-value" id="eqY">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Z:</span>
-                                    <span class="info-value" id="eqZ">-</span>
-                                </div>
+                        <div class="equipment-section">
+                            <h3><i class="fas fa-tools"></i> Oprema na Lokaciji</h3>
+                            <div id="equipmentGrid" class="equipment-grid">
+                                <p class="no-data">Nema opreme na ovoj lokaciji.</p>
                             </div>
                         </div>
-
-                        <div class="info-card">
-                            <h4><i class="fas fa-user-hard-hat"></i> Instalacija</h4>
-                            <div class="info-rows">
-                                <div class="info-row">
-                                    <span class="info-label">Datum postavljanja:</span>
-                                    <span class="info-value" id="eqInstallDate">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Instalirao:</span>
-                                    <span class="info-value" id="eqInstaller">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Testirao:</span>
-                                    <span class="info-value" id="eqTester">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="info-card">
-                            <h4><i class="fas fa-shield-alt"></i> Garancija</h4>
-                            <div class="info-rows">
-                                <div class="info-row">
-                                    <span class="info-label">Garancija do:</span>
-                                    <span class="info-value" id="eqWarranty">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Status:</span>
-                                    <span class="info-value" id="eqWarrantyStatus">-</span>
-                                </div>
-                            </div>
-                            <button class="btn btn-small btn-secondary" onclick="addToCalendar()">
-                                <i class="fas fa-calendar-plus"></i> Dodaj u Kalendar
-                            </button>
-                        </div>
-
-                        <div class="info-card full-width">
-                            <h4><i class="fas fa-file-alt"></i> Dodatna Dokumentacija</h4>
-                            <div id="documentsList" class="documents-list">
-                                <p class="no-data">Nema dodatne dokumentacije</p>
-                            </div>
-                            <button class="btn btn-small btn-secondary" onclick="document.getElementById('docUpload').click()">
-                                <i class="fas fa-upload"></i> Dodaj Dokumentaciju
-                            </button>
-                            <input type="file" id="docUpload" multiple style="display:none" onchange="uploadDocuments(event)">
-                        </div>
-                    </div>
-
-                    <div class="equipment-actions">
-                        <button class="btn btn-secondary" onclick="editCurrentEquipment()">
-                            <i class="fas fa-edit"></i> Izmeni Opremu
-                        </button>
-                        <button class="btn btn-danger" onclick="deleteCurrentEquipment()">
-                            <i class="fas fa-trash"></i> Obriši Opremu
-                        </button>
                     </div>
                 </div>
-            </div>
-        </main>
+
+                <!-- Equipment Detail View -->
+                <div id="equipmentDetailView" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-back" onclick="showLocationDetail(currentLocationId)">
+                            <i class="fas fa-arrow-left"></i> Nazad na Lokaciju
+                        </button>
+                        <h2 id="equipmentTitle">Detalji Opreme</h2>
+                        <div class="view-actions">
+                            <button class="btn btn-secondary" onclick="showQRModal()">
+                                <i class="fas fa-qrcode"></i> QR Kod
+                            </button>
+                            <button class="btn btn-secondary" onclick="printEquipmentReport()">
+                                <i class="fas fa-print"></i> Print Izveštaj
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="equipment-detail-content">
+                        <!-- Status Badge -->
+                        <div class="equipment-status-banner" id="equipmentStatusBanner">
+                            <span class="status-badge" id="eqStatusBadge">Aktivna</span>
+                        </div>
+
+                        <div class="equipment-images">
+                            <div class="image-section">
+                                <h4>Fotografija Lokacije</h4>
+                                <div class="image-preview" id="equipmentLocationImage">
+                                    <div class="no-image">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="image-section">
+                                <h4>Fotografija Opreme</h4>
+                                <div class="image-preview" id="equipmentImage">
+                                    <div class="no-image">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="image-section qr-section">
+                                <h4>QR Kod</h4>
+                                <div class="qr-preview" id="equipmentQRSmall"></div>
+                                <button class="btn btn-small btn-secondary" onclick="showQRModal()">
+                                    <i class="fas fa-expand"></i> Povećaj
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="equipment-info-grid">
+                            <div class="info-card">
+                                <h4><i class="fas fa-info-circle"></i> Osnovne Informacije</h4>
+                                <div class="info-rows">
+                                    <div class="info-row">
+                                        <span class="info-label">Lokacija:</span>
+                                        <span class="info-value" id="eqLocation">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Inventarski broj:</span>
+                                        <span class="info-value" id="eqInventory">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Tip opreme:</span>
+                                        <span class="info-value" id="eqType">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Status:</span>
+                                        <span class="info-value" id="eqStatus">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h4><i class="fas fa-network-wired"></i> Mrežne Informacije</h4>
+                                <div class="info-rows">
+                                    <div class="info-row">
+                                        <span class="info-label">IP Adresa:</span>
+                                        <span class="info-value" id="eqIP">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">MAC Adresa:</span>
+                                        <span class="info-value" id="eqMAC">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h4><i class="fas fa-ruler-combined"></i> Pozicija (cm)</h4>
+                                <div class="info-rows">
+                                    <div class="info-row">
+                                        <span class="info-label">X:</span>
+                                        <span class="info-value" id="eqX">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Y:</span>
+                                        <span class="info-value" id="eqY">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Z:</span>
+                                        <span class="info-value" id="eqZ">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h4><i class="fas fa-hard-hat"></i> Instalacija</h4>
+                                <div class="info-rows">
+                                    <div class="info-row">
+                                        <span class="info-label">Datum postavljanja:</span>
+                                        <span class="info-value" id="eqInstallDate">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Instalirao:</span>
+                                        <span class="info-value" id="eqInstaller">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Testirao:</span>
+                                        <span class="info-value" id="eqTester">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h4><i class="fas fa-shield-alt"></i> Garancija</h4>
+                                <div class="info-rows">
+                                    <div class="info-row">
+                                        <span class="info-label">Garancija do:</span>
+                                        <span class="info-value" id="eqWarranty">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Status:</span>
+                                        <span class="info-value" id="eqWarrantyStatus">-</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-small btn-secondary" onclick="addToCalendar()">
+                                    <i class="fas fa-calendar-plus"></i> Dodaj u Kalendar
+                                </button>
+                            </div>
+
+                            <!-- Maintenance Card -->
+                            <div class="info-card">
+                                <h4><i class="fas fa-wrench"></i> Servis / Održavanje</h4>
+                                <div id="maintenanceInfo" class="info-rows">
+                                    <p class="no-data">Nema servisnih zapisa</p>
+                                </div>
+                                <button class="btn btn-small btn-secondary" onclick="showAddMaintenanceModal()">
+                                    <i class="fas fa-plus"></i> Dodaj Servis
+                                </button>
+                            </div>
+
+                            <div class="info-card full-width">
+                                <h4><i class="fas fa-file-alt"></i> Dodatna Dokumentacija</h4>
+                                <div id="documentsList" class="documents-list">
+                                    <p class="no-data">Nema dodatne dokumentacije</p>
+                                </div>
+                                <button class="btn btn-small btn-secondary" onclick="document.getElementById('docUpload').click()">
+                                    <i class="fas fa-upload"></i> Dodaj Dokumentaciju
+                                </button>
+                                <input type="file" id="docUpload" multiple style="display:none" onchange="uploadDocuments(event)">
+                            </div>
+
+                            <!-- History / Audit Log -->
+                            <div class="info-card full-width">
+                                <h4><i class="fas fa-history"></i> Istorija Promena</h4>
+                                <div id="historyLog" class="history-log">
+                                    <p class="no-data">Nema zabeleženih promena</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="equipment-actions">
+                            <button class="btn btn-secondary" onclick="editCurrentEquipment()">
+                                <i class="fas fa-edit"></i> Izmeni Opremu
+                            </button>
+                            <button class="btn btn-warning" onclick="showChangeStatusModal()">
+                                <i class="fas fa-exchange-alt"></i> Promeni Status
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteCurrentEquipment()">
+                                <i class="fas fa-trash"></i> Obriši Opremu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <!-- Add/Edit Location Modal -->
@@ -401,6 +544,17 @@
                             <input type="text" id="eqFormInventory" required placeholder="INV-001">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eqFormStatus">Status Opreme</label>
+                            <select id="eqFormStatus">
+                                <option value="Aktivna">Aktivna</option>
+                                <option value="Na servisu">Na servisu</option>
+                                <option value="Neispravna">Neispravna</option>
+                                <option value="Povučena">Povučena</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-section">
@@ -482,6 +636,126 @@
 
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('equipmentModal')">Otkaži</button>
+                    <button type="submit" class="btn btn-primary">Sačuvaj</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-qrcode"></i> QR Kod Opreme</h3>
+                <button class="btn btn-icon" onclick="closeModal('qrModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="qr-modal-content">
+                <div class="qr-label-preview" id="qrLabelPreview">
+                    <div class="qr-label-header">
+                        <span class="qr-label-logo">MLFF OPREMA</span>
+                    </div>
+                    <div class="qr-label-body">
+                        <div class="qr-code-large" id="qrCodeLarge"></div>
+                        <div class="qr-label-info">
+                            <div class="qr-info-row"><strong>Inv:</strong> <span id="qrInvNumber">-</span></div>
+                            <div class="qr-info-row"><strong>Tip:</strong> <span id="qrType">-</span></div>
+                            <div class="qr-info-row"><strong>Lok:</strong> <span id="qrLocation">-</span></div>
+                            <div class="qr-info-row"><strong>GPS:</strong> <span id="qrGPS">-</span></div>
+                        </div>
+                    </div>
+                    <div class="qr-label-footer">
+                        Skeniraj za detalje | Orion E-mobility
+                    </div>
+                </div>
+                <div class="qr-actions">
+                    <button class="btn btn-primary" onclick="printQRLabel()">
+                        <i class="fas fa-print"></i> Štampaj Naljepnicu
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadQRImage()">
+                        <i class="fas fa-download"></i> Preuzmi Sliku
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Status Modal -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3><i class="fas fa-exchange-alt"></i> Promeni Status</h3>
+                <button class="btn btn-icon" onclick="closeModal('statusModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="statusForm" onsubmit="changeEquipmentStatus(event)">
+                <div class="form-group">
+                    <label for="newStatus">Novi Status</label>
+                    <select id="newStatus" required>
+                        <option value="Aktivna">Aktivna</option>
+                        <option value="Na servisu">Na servisu</option>
+                        <option value="Neispravna">Neispravna</option>
+                        <option value="Povučena">Povučena</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="statusReason">Razlog promene</label>
+                    <textarea id="statusReason" rows="2" placeholder="Unesite razlog promene statusa..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('statusModal')">Otkaži</button>
+                    <button type="submit" class="btn btn-primary">Sačuvaj</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Maintenance Modal -->
+    <div id="maintenanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-wrench"></i> Dodaj Servisni Zapis</h3>
+                <button class="btn btn-icon" onclick="closeModal('maintenanceModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="maintenanceForm" onsubmit="addMaintenanceRecord(event)">
+                <div class="form-group">
+                    <label for="maintType">Tip Servisa</label>
+                    <select id="maintType" required>
+                        <option value="Preventivni">Preventivni</option>
+                        <option value="Korektivni">Korektivni</option>
+                        <option value="Inspekcija">Inspekcija</option>
+                        <option value="Zamena dela">Zamena dela</option>
+                        <option value="Kalibracija">Kalibracija</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="maintDate">Datum Servisa</label>
+                        <input type="date" id="maintDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="maintTechnician">Serviser</label>
+                        <input type="text" id="maintTechnician" placeholder="Ime i prezime">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="maintDescription">Opis Radova</label>
+                    <textarea id="maintDescription" rows="3" placeholder="Opišite izvršene radove..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="maintCost">Troškovi (RSD)</label>
+                    <input type="number" id="maintCost" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="maintNextDate">Sledeći Planirani Servis</label>
+                    <input type="date" id="maintNextDate">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('maintenanceModal')">Otkaži</button>
                     <button type="submit" class="btn btn-primary">Sačuvaj</button>
                 </div>
             </form>

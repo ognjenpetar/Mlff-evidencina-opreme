@@ -257,6 +257,57 @@ BRENDING:
 IZMENE I AŽURIRANJA:
 ====================
 
+Verzija 1.3 - "Web Deployment Edition" - Decembar 2025
+-------------------------------------------------------
++ POTPUNO REFAKTORISAN UPLOAD SISTEM DOKUMENATA
+  - Ispravljen prikaz dokumenata pri editovanju opreme
+  - Dokumenti se sada prikazuju u preview-u tokom edit-a
+  - Mogućnost uklanjanja postojećih dokumenata
+  - Bulk upload funkcionalnost (više dokumenata odjednom)
+  - Validacija fajlova (tip, veličina - max 10MB po fajlu)
+  - Progress bar za upload više dokumenata
+  - Automatsko beleženje u audit log
+  - Poboljšana error handling sa jasnim porukama
+  - Deduplikacija i praćenje dokumenata
+  - 10 kritičnih bugova ispravljeno
+
++ HOVER PREVIEW DOKUMENATA
+  - Hover nad dokumentom prikazuje veliki preview
+  - Scroll funkcionalnost kroz PDF dokumente
+  - Preview radi i za slike
+  - Responsive dizajn (desktop i mobile)
+  - Stilizovan scrollbar
+
++ SUB-PAGE ARHITEKTURA (SPA Router)
+  - URL routing sistem za shareable linkove
+  - Svaka lokacija ima svoj URL: /#/location/[id]
+  - Svaka oprema ima svoj URL: /#/equipment/[id]
+  - QR kodovi sada vode na sub-page opreme
+  - Browser back/forward podrška
+  - Direktan pristup putem URL-a
+
++ IN-APP REPORT PREVIEW
+  - "Prikaži Izveštaj" dugme za lokacije i opremu
+  - Izveštaji se prikazuju u aplikaciji bez downloada
+  - Štampanje i dalje dostupno
+  - Responsive dizajn za mobilne uređaje
+
++ WEB DEPLOYMENT READY
+  - GitHub Pages kompatibilno
+  - Netlify/Vercel/Cloudflare Pages podržano
+  - Firebase Hosting podržano
+  - Radi i lokalno i na webu
+  - DEPLOYMENT.md sa detaljnim instrukcijama
+  - Multi-environment support
+  - Hash-based routing za static hosting
+
++ TEHNIČKA POBOLJŠANJA
+  - router.js - lightweight SPA router (<100 lines)
+  - Poboljšana navigacija između view-ova
+  - Optimizovana file validacija
+  - Async file processing sa progress tracking
+  - Better error handling throughout
+
 Verzija 1.2 - Decembar 2025
 ----------------------------
 + INTERAKTIVNA MAPA sa OpenStreetMap podlogom

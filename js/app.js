@@ -1001,9 +1001,9 @@ function generateEquipmentQR() {
     const smallContainer = document.getElementById('equipmentQRSmall');
     smallContainer.innerHTML = '';
 
-    // Generate URL that opens equipment detail using new router format
+    // Generate URL that opens equipment report using new router format
     const baseUrl = window.location.origin + window.location.pathname;
-    const qrUrl = `${baseUrl}#/equipment/${equipment.id}`;
+    const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
     qrCodeSmallInstance = new QRCode(smallContainer, {
         text: qrUrl,
@@ -1031,9 +1031,9 @@ function showQRModal() {
     const largeContainer = document.getElementById('qrCodeLarge');
     largeContainer.innerHTML = '';
 
-    // Generate URL that opens equipment detail using new router format
+    // Generate URL that opens equipment report using new router format
     const baseUrl = window.location.origin + window.location.pathname;
-    const qrUrl = `${baseUrl}#/equipment/${equipment.id}`;
+    const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
     qrCodeInstance = new QRCode(largeContainer, {
         text: qrUrl,

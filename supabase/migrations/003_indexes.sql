@@ -45,17 +45,11 @@ CREATE INDEX idx_equipment_status_created
 CREATE INDEX idx_maintenance_equipment_date
     ON maintenance(equipment_id, date DESC);
 
--- Upcoming maintenance (next_service_date in the near future)
-CREATE INDEX idx_maintenance_upcoming
+-- Maintenance with next service date (for filtering upcoming/overdue in queries)
+-- Note: Date comparison (>= CURRENT_DATE) must be done in query, not in index WHERE clause
+CREATE INDEX idx_maintenance_next_service
     ON maintenance(next_service_date)
-    WHERE next_service_date IS NOT NULL
-    AND next_service_date >= CURRENT_DATE;
-
--- Overdue maintenance (past due date)
-CREATE INDEX idx_maintenance_overdue
-    ON maintenance(next_service_date)
-    WHERE next_service_date IS NOT NULL
-    AND next_service_date < CURRENT_DATE;
+    WHERE next_service_date IS NOT NULL;
 
 -- ==========================================
 -- DOCUMENTS INDEXES
@@ -86,10 +80,10 @@ CREATE INDEX idx_audit_user_timestamp
     ON audit_log(user_id, timestamp DESC)
     WHERE user_id IS NOT NULL;
 
--- Recent audit entries (last 30 days)
-CREATE INDEX idx_audit_recent
-    ON audit_log(timestamp DESC)
-    WHERE timestamp >= (NOW() - INTERVAL '30 days');
+-- Audit entries sorted by timestamp (for filtering recent entries in queries)
+-- Note: Date filtering (last N days) must be done in query, not in index WHERE clause
+CREATE INDEX idx_audit_timestamp
+    ON audit_log(timestamp DESC);
 
 -- ==========================================
 -- TEXT SEARCH INDEXES
@@ -137,17 +131,11 @@ CREATE INDEX idx_equipment_needs_service
     ON equipment(location_id, created_at DESC)
     WHERE status IN ('Na servisu', 'Neispravna');
 
--- Equipment with warranty (unexpired warranty)
-CREATE INDEX idx_equipment_warranty_active
+-- Equipment with warranty expiry date (for filtering active/expired in queries)
+-- Note: Date comparison (>= or < CURRENT_DATE) must be done in query, not in index WHERE clause
+CREATE INDEX idx_equipment_warranty
     ON equipment(warranty_expiry)
-    WHERE warranty_expiry IS NOT NULL
-    AND warranty_expiry >= CURRENT_DATE;
-
--- Equipment with expired warranty
-CREATE INDEX idx_equipment_warranty_expired
-    ON equipment(warranty_expiry)
-    WHERE warranty_expiry IS NOT NULL
-    AND warranty_expiry < CURRENT_DATE;
+    WHERE warranty_expiry IS NOT NULL;
 
 -- ==========================================
 -- COVERING INDEXES
@@ -233,8 +221,8 @@ CREATE INDEX idx_maintenance_history_covering
 -- Next step:
 --   Run 004_storage_setup.sql to configure Supabase Storage buckets
 --
--- Total indexes added: 30
--- Total indexes (including from 001): 45+
+-- Total indexes added: 25
+-- Total indexes (including from 001): 40+
 --
 -- Index types used:
 --   - B-tree (default, for equality and range queries)
@@ -242,4 +230,8 @@ CREATE INDEX idx_maintenance_history_covering
 --   - Partial indexes (for filtered data subsets)
 --   - Covering indexes (include extra columns)
 --   - Composite indexes (multi-column queries)
+--
+-- Note: Indexes with CURRENT_DATE/NOW() in WHERE clause were simplified
+-- to avoid IMMUTABLE function requirement. Date filtering should be
+-- done in application queries, not in index predicates.
 -- ==========================================

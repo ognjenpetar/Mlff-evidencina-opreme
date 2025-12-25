@@ -24,8 +24,8 @@
 // ⚠️ TODO: Replace these with your actual Supabase project credentials
 // ==========================================
 
-const SUPABASE_URL = 'https://YOUR-PROJECT-ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY-HERE';
+const SUPABASE_URL = 'https://xmkkqawodbejrcjlnmqx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhta2txYXdvZGJlanJjamxubXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYxMzQ4MTksImV4cCI6MjA4MTcxMDgxOX0.nZSQTc1mqXm4Grv5u2ewolOHhjyvAebfbEnZ65yaZiE';
 
 // ==========================================
 // INITIALIZE SUPABASE CLIENT

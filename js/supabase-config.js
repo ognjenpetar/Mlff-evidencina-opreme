@@ -21,11 +21,13 @@
 // ==========================================
 // CONFIGURATION
 // ==========================================
-// ⚠️ TODO: Replace these with your actual Supabase project credentials
+// Credentials are loaded from environment variables (.env file)
+// For local development: copy .env.example to .env and fill in your values
+// For production: environment variables are injected during build (Vite)
 // ==========================================
 
-const SUPABASE_URL = 'https://xmkkqawodbejrcjlnmqx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhta2txYXdvZGJlanJjamxubXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYxMzQ4MTksImV4cCI6MjA4MTcxMDgxOX0.nZSQTc1mqXm4Grv5u2ewolOHhjyvAebfbEnZ65yaZiE';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // ==========================================
 // INITIALIZE SUPABASE CLIENT
@@ -43,9 +45,16 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // VERIFY CONFIGURATION
 // ==========================================
 
-if (SUPABASE_URL.includes('YOUR-PROJECT-ID') || SUPABASE_ANON_KEY.includes('YOUR-ANON-PUBLIC-KEY')) {
-    console.warn('⚠️ WARNING: Supabase credentials are not configured!');
-    console.warn('📝 Please update js/supabase-config.js with your actual Supabase project credentials.');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('❌ ERROR: Supabase credentials not found!');
+    console.error('📝 Make sure you have:');
+    console.error('   1. Created .env file (copy from .env.example)');
+    console.error('   2. Filled in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+    console.error('   3. Run "npm run dev" (for development) or "npm run build" (for production)');
+    throw new Error('Missing Supabase credentials. Check console for details.');
+} else if (SUPABASE_URL.includes('YOUR-PROJECT-ID') || SUPABASE_ANON_KEY.includes('YOUR-ANON-KEY')) {
+    console.warn('⚠️ WARNING: Supabase credentials are placeholder values!');
+    console.warn('📝 Please update .env file with your actual Supabase credentials.');
     console.warn('🔗 Get them from: https://supabase.com/dashboard → Your Project → Settings → API');
 } else {
     console.log('✅ Supabase client initialized successfully');

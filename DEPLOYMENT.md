@@ -157,23 +157,60 @@ Ovaj dokument pruža kompletan vodič za deployment aplikacije na Supabase backe
    - **Project URL** (npr. `https://abcxyz123.supabase.co`)
    - **anon/public key** (dugačak JWT token)
 
-### 4.2 Update `js/supabase-config.js`
+### 4.2 Setup Environment Variables
 
-Otvori fajl `js/supabase-config.js` u editoru i zameni:
+**Credentials se čuvaju u `.env` fajlu (NIJE commit-ovan na Git) za bezbednost:**
 
-```javascript
-// BEFORE:
-const SUPABASE_URL = 'https://YOUR-PROJECT-ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY-HERE';
+1. **Kopiraj template:**
+   ```bash
+   cp .env.example .env
+   ```
 
-// AFTER (tvoje vrednosti):
-const SUPABASE_URL = 'https://abcxyz123.supabase.co';  // ← PASTE PROJECT URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';  // ← PASTE ANON KEY
+2. **Otvori `.env` fajl** u editoru i paste-uj svoje credentials:
+   ```env
+   # .env (Ne commit-uj ovaj fajl!)
+   VITE_SUPABASE_URL=https://xmkkqawodbejrcjlnmqx.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   ```
+
+3. **Sačuvaj fajl!**
+
+⚠️ **VAŽNO:** `.env` fajl je u `.gitignore` i **neće biti push-ovan na GitHub**. To čini repository siguran za javnu upotrebu (public).
+
+### 4.3 Install Dependencies
+
+```bash
+npm install
 ```
 
-**Sačuvaj fajl!**
+Ova komanda instalira Vite build tool (definisan u `package.json`).
 
-### 4.3 Update Supabase Auth Redirect URLs
+### 4.4 Build Aplikaciju
+
+```bash
+npm run build
+```
+
+Ova komanda:
+- Čita `.env` fajl
+- Ubacuje credentials u JavaScript kod
+- Generiše optimizovanu verziju u `dist/` folder
+
+**Output:**
+```
+dist/
+├── index.html
+├── migration.html
+├── js/
+│   ├── supabase-config.js
+│   ├── supabase-service.js
+│   ├── router.js
+│   └── app.js
+├── css/
+└── images/
+```
+
+### 4.5 Update Supabase Auth Redirect URLs
 
 1. U Supabase Dashboard, **"Authentication"** → **"URL Configuration"**
 2. **Site URL:** `https://ognjenpetar.github.io/mlff-equipment-tracking/`
@@ -194,21 +231,102 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';  // ← PAS
 4. **NEMOJ** čekirati "Initialize with README"
 5. Klikni **"Create repository"**
 
-### 5.2 Push Local Code
+### 5.2 Push Code to GitHub
 
 ```bash
 cd "c:\Users\ognjen.petar\OPT APPS\Mlff-evidencina-opreme"
 
-# Commit config changes
-git add js/supabase-config.js
-git commit -m "Configure Supabase credentials"
+# Add all changes (vite config, package.json, .env.example, .gitignore)
+git add .
 
-# Add remote (ako već ne postoji)
-git remote add origin https://github.com/ognjenpetar/mlff-equipment-tracking.git
+# Commit changes
+git commit -m "Add Vite build system with environment variables
+
+- Environment variables stored in .env (gitignored for security)
+- .env.example template for contributors
+- Vite build tool for production deployment
+- Updated DEPLOYMENT.md with build instructions"
 
 # Push 3.supabase branch
-git push -u origin 3.supabase
+git push origin 3.supabase
 ```
+
+⚠️ **VAŽNO:** `.env` fajl **NIJE** push-ovan (gitignored), samo `.env.example` template.
+
+### 5.3 Build & Deploy to GitHub Pages
+
+**Opcija A: Manual Deployment (za svaki update)**
+
+```bash
+# Build production version
+npm run build
+
+# Commit dist/ folder
+git add dist/
+git commit -m "Build production version"
+git push origin 3.supabase
+```
+
+**Opcija B: GitHub Actions (Automatski - PREPORUČENO)**
+
+Kreiraćemo GitHub Action koji automatski build-uje i deploy-uje na svaki push.
+
+**Kreiraj fajl `.github/workflows/deploy.yml`:**
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ 3.supabase ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+```
+
+**Dodaj Secrets u GitHub:**
+
+1. GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+2. Klikni **"New repository secret"**
+3. Dodaj:
+   - Name: `VITE_SUPABASE_URL`, Value: `https://xmkkqawodbejrcjlnmqx.supabase.co`
+   - Name: `VITE_SUPABASE_ANON_KEY`, Value: `eyJhbGci...` (tvoj anon key)
+
+**Commit workflow:**
+
+```bash
+git add .github/workflows/deploy.yml
+git commit -m "Add GitHub Actions auto-deployment"
+git push origin 3.supabase
+```
+
+**Sada će svaki push automatski build-ovati i deploy-ovati aplikaciju!** ✅
 
 ---
 
@@ -216,22 +334,31 @@ git push -u origin 3.supabase
 
 ### 6.1 Repository Settings
 
-1. Idi na GitHub repo: https://github.com/ognjenpetar/mlff-equipment-tracking
+1. Idi na GitHub repo: https://github.com/ognjenpetar/Mlff-evidencina-opreme
 2. Klikni **"Settings"** tab
 3. Sidebar → **"Pages"**
 
 ### 6.2 Configure Source
 
+**Ako koristiš GitHub Actions (Opcija B iz 5.3):**
+1. **Source:** Deploy from a branch
+2. **Branch:** `gh-pages` (dropdown) - GitHub Action automatski kreira ovaj branch
+3. **Folder:** `/ (root)` (dropdown)
+4. Klikni **"Save"**
+
+**Ako koristiš Manual Deployment (Opcija A iz 5.3):**
 1. **Source:** Deploy from a branch
 2. **Branch:** `3.supabase` (dropdown)
-3. **Folder:** `/ (root)` (dropdown)
+3. **Folder:** `/dist` (dropdown) - Mora biti dist folder jer tu je build output
 4. Klikni **"Save"**
 
 ### 6.3 Wait for Deployment
 
 1. Refresh stranicu nakon 2-3 minuta
-2. Videćeš: **"Your site is live at https://ognjenpetar.github.io/mlff-equipment-tracking/"**
+2. Videćeš: **"Your site is live at https://ognjenpetar.github.io/Mlff-evidencina-opreme/"**
 3. Klikni na URL da testiraj!
+
+⚠️ **Napomena:** URL je možda različit ako imaš više repo-a. Proveri na GitHub Pages settings stranicu.
 
 ---
 

@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to validate file size (max 50MB)
+    function validFileSize() {
+      return request.resource.size <= 50 * 1024 * 1024;
+    }
+
+    // Helper function to validate file type (images and PDFs only)
+    function validFileType() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType == 'application/pdf';
+    }
+
+    // ===== LOCATION PHOTOS =====
+    match /locations/{locationId}/photo/{filename} {
+      // Allow public read (for QR code reports)
+      allow read: if true;
+
+      // Require authentication for upload/delete
+      allow write: if isAuthenticated() && validFileSize() && validFileType();
+    }
+
+    // ===== EQUIPMENT PHOTOS =====
+    match /equipment/{equipmentId}/photo/{filename} {
+      // Allow public read (for QR code reports)
+      allow read: if true;
+
+      // Require authentication for upload/delete
+      allow write: if isAuthenticated() && validFileSize() && validFileType();
+    }
+
+    // ===== EQUIPMENT DOCUMENTS =====
+    match /equipment/{equipmentId}/documents/{filename} {
+      // Allow public read (for QR code reports)
+      allow read: if true;
+
+      // Require authentication for upload/delete
+      // Allow larger files for documents (up to 50MB)
+      allow write: if isAuthenticated() && validFileSize();
+    }
+  }
+}

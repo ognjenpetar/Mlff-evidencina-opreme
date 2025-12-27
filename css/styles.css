@@ -1067,6 +1067,301 @@ form {
     font-size: 0.85rem;
 }
 
+.doc-preview-item.existing-doc {
+    border-left: 3px solid var(--primary-green);
+}
+
+.doc-preview-item.new-doc {
+    border-left: 3px solid var(--primary-purple);
+}
+
+.doc-preview-item.marked-for-removal {
+    opacity: 0.5;
+    text-decoration: line-through;
+    background: var(--bg-input);
+}
+
+.btn-icon-tiny {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-small);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.btn-icon-tiny:hover {
+    background: var(--danger);
+    color: var(--text-primary);
+}
+
+.existing-docs, .new-docs {
+    margin-bottom: 8px;
+}
+
+.existing-docs::before {
+    content: "Postojeći dokumenti:";
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.new-docs::before {
+    content: "Novi dokumenti:";
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+/* ===== UPLOAD PROGRESS MODAL ===== */
+.upload-progress-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.progress-content {
+    background: var(--bg-card);
+    padding: 30px 40px;
+    border-radius: var(--radius);
+    min-width: 400px;
+    text-align: center;
+    border: 2px solid var(--primary-green);
+}
+
+.progress-content h3 {
+    color: var(--primary-green);
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+.progress-content h3 i {
+    margin-right: 10px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 30px;
+    background: var(--bg-input);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-green), var(--primary-purple));
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.progress-content p {
+    color: var(--text-primary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ===== DOCUMENT HOVER PREVIEW ===== */
+.document-item {
+    position: relative;
+}
+
+.document-hover-preview {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85vw;
+    max-width: 900px;
+    height: 85vh;
+    background: var(--bg-card);
+    border: 3px solid var(--primary-green);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 60px rgba(0, 255, 136, 0.4);
+    z-index: 9999;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.document-item:hover .document-hover-preview {
+    display: flex;
+}
+
+.preview-header {
+    padding: 16px 20px;
+    background: var(--bg-input);
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.preview-header h4 {
+    margin: 0 0 5px 0;
+    color: var(--primary-green);
+    font-size: 1.1rem;
+}
+
+.preview-header .file-size {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.preview-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+    background: var(--bg-page);
+}
+
+.preview-pdf-embed {
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+    border: none;
+}
+
+.preview-image-embed {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.no-preview {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Scrollbar styling for preview content */
+.preview-content::-webkit-scrollbar {
+    width: 12px;
+}
+
+.preview-content::-webkit-scrollbar-track {
+    background: var(--bg-input);
+}
+
+.preview-content::-webkit-scrollbar-thumb {
+    background: var(--primary-green);
+    border-radius: 6px;
+}
+
+.preview-content::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-purple);
+}
+
+/* Responsive preview */
+@media (max-width: 768px) {
+    .document-hover-preview {
+        width: 95vw;
+        height: 90vh;
+    }
+
+    .preview-header h4 {
+        font-size: 0.95rem;
+    }
+}
+
+/* ===== REPORT VIEW ===== */
+.report-view-content {
+    background: #fff;
+    color: #000;
+    padding: 40px;
+    border-radius: var(--radius);
+    margin: 20px auto;
+    max-width: 1000px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.report-view-content h1,
+.report-view-content h2,
+.report-view-content h3 {
+    color: #000;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.report-view-content .print-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.report-view-content .print-logo span:first-child {
+    color: #a855f7 !important;
+}
+
+.report-view-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+.report-view-content table th,
+.report-view-content table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.report-view-content table th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+.report-view-content .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.report-view-content .info-item {
+    padding: 10px;
+    background: #f9f9f9;
+    border-left: 3px solid #00cc6a;
+}
+
+.report-view-content .info-item strong {
+    color: #00aa55;
+}
+
+@media (max-width: 768px) {
+    .report-view-content {
+        padding: 20px;
+        margin: 10px;
+    }
+
+    .report-view-content .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ===== PRINT CONTENT ===== */
 .print-content {
     padding: 30px;

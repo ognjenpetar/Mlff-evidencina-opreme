@@ -1,0 +1,27 @@
+{
+  "name": "mlff-equipment-tracking",
+  "version": "3.0.0",
+  "description": "MLFF Equipment Tracking System - Supabase Edition",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ognjenpetar/Mlff-evidencina-opreme.git"
+  },
+  "keywords": [
+    "equipment-tracking",
+    "mlff",
+    "supabase",
+    "inventory-management"
+  ],
+  "author": "Ognjen Petar",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "dependencies": {}
+}

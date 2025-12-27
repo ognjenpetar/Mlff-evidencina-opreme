@@ -7,6 +7,11 @@ const BACKUP_REMINDER_DAYS = 7;
 // Predefined equipment types
 const DEFAULT_EQUIPMENT_TYPES = ['VDX', 'VRX', 'Antena', 'Switch', 'TRC', 'TRM', 'intel', 'jetson', 'Wi-FI'];
 
+// File upload validation constants
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_FILE_TYPES = ['application/pdf'];
+const ALLOWED_FILE_EXTENSIONS = ['.pdf'];
+
 let appData = {
     locations: [],
     lastModified: null,
@@ -33,39 +38,78 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     loadCustomTypes();
     populateEquipmentTypes();
-    renderDashboard();
-    renderStructureTree();
     updateBreadcrumb();
     updateDataStatus();
     updateLocationFilter();
     checkBackupReminder();
     checkShowWelcome();
-    handleHashNavigation();
+
+    // Initialize router routes
+    initializeRouter();
 });
 
-// Handle URL hash for QR code navigation
-window.addEventListener('hashchange', handleHashNavigation);
+function initializeRouter() {
+    // Dashboard route
+    router.addRoute('dashboard', () => {
+        showView('dashboardView');
+        renderDashboard();
+        renderStructureTree();
+        updateBreadcrumb();
+    });
 
-function handleHashNavigation() {
-    const hash = window.location.hash;
-    if (hash.startsWith('#eq=')) {
-        const equipmentId = hash.substring(4);
-        navigateToEquipment(equipmentId);
-    } else if (hash.startsWith('#loc=')) {
-        const locationId = hash.substring(5);
-        showLocationDetail(locationId);
-    }
-}
-
-function navigateToEquipment(equipmentId) {
-    for (const loc of appData.locations) {
-        const eq = (loc.equipment || []).find(e => e.id === equipmentId);
-        if (eq) {
-            currentLocationId = loc.id;
-            showEquipmentDetail(equipmentId);
-            return;
+    // Location detail route
+    router.addRoute('location', (id) => {
+        const location = appData.locations.find(l => l.id === id);
+        if (location) {
+            currentLocationId = id;
+            showView('locationDetailView');
+            renderLocationDetail();
+            renderStructureTree();
+            updateBreadcrumb();
+        } else {
+            alert('Lokacija nije pronađena');
+            router.navigate('/');
         }
-    }
+    });
+
+    // Equipment detail route
+    router.addRoute('equipment', (id) => {
+        // Find equipment across all locations
+        let foundLocation = null;
+        let foundEquipment = null;
+
+        for (const location of appData.locations) {
+            const equipment = (location.equipment || []).find(e => e.id === id);
+            if (equipment) {
+                foundLocation = location;
+                foundEquipment = equipment;
+                break;
+            }
+        }
+
+        if (foundLocation && foundEquipment) {
+            currentLocationId = foundLocation.id;
+            currentEquipmentId = id;
+            showView('equipmentDetailView');
+            renderEquipmentDetail();
+            renderStructureTree();
+            updateBreadcrumb();
+            generateEquipmentQR();
+        } else {
+            alert('Oprema nije pronađena');
+            router.navigate('/');
+        }
+    });
+
+    // Location report route
+    router.addRoute('locationReport', (id) => {
+        showLocationReportView(id);
+    });
+
+    // Equipment report route
+    router.addRoute('equipmentReport', (id) => {
+        showEquipmentReportView(id);
+    });
 }
 
 // Load data from localStorage
@@ -102,33 +146,65 @@ function showView(viewId) {
 }
 
 function showDashboard() {
-    currentLocationId = null;
-    currentEquipmentId = null;
-    showView('dashboardView');
-    renderDashboard();
-    updateBreadcrumb();
-    renderStructureTree();
-    window.location.hash = '';
+    router.navigate('/');
 }
 
 function showLocationDetail(locationId) {
-    currentLocationId = locationId;
-    currentEquipmentId = null;
-    showView('locationDetailView');
-    renderLocationDetail();
-    updateBreadcrumb();
-    renderStructureTree();
-    window.location.hash = `loc=${locationId}`;
+    router.navigate(`/location/${locationId}`);
 }
 
 function showEquipmentDetail(equipmentId) {
-    currentEquipmentId = equipmentId;
-    showView('equipmentDetailView');
-    renderEquipmentDetail();
+    router.navigate(`/equipment/${equipmentId}`);
+}
+
+// Report view functions
+function showLocationReportView(locationId) {
+    const location = appData.locations.find(l => l.id === locationId);
+    if (!location) {
+        alert('Lokacija nije pronađena');
+        router.navigate('/');
+        return;
+    }
+
+    currentLocationId = locationId;
+    showView('locationReportView');
+
+    // Generate and display report
+    const reportHtml = generateLocationReportHTML(location);
+    document.getElementById('locationReportContent').innerHTML = reportHtml;
+
     updateBreadcrumb();
-    renderStructureTree();
-    generateEquipmentQR();
-    window.location.hash = `eq=${equipmentId}`;
+}
+
+function showEquipmentReportView(equipmentId) {
+    // Find equipment across all locations
+    let foundLocation = null;
+    let foundEquipment = null;
+
+    for (const location of appData.locations) {
+        const equipment = (location.equipment || []).find(e => e.id === equipmentId);
+        if (equipment) {
+            foundLocation = location;
+            foundEquipment = equipment;
+            break;
+        }
+    }
+
+    if (!foundLocation || !foundEquipment) {
+        alert('Oprema nije pronađena');
+        router.navigate('/');
+        return;
+    }
+
+    currentLocationId = foundLocation.id;
+    currentEquipmentId = equipmentId;
+    showView('equipmentReportView');
+
+    // Generate and display report
+    const reportHtml = generateEquipmentReportHTML(foundLocation, foundEquipment);
+    document.getElementById('equipmentReportContent').innerHTML = reportHtml;
+
+    updateBreadcrumb();
 }
 
 // ===== BREADCRUMB =====
@@ -859,10 +935,23 @@ function renderDocumentsList(equipment) {
     container.innerHTML = documents.map((doc, index) => {
         // Determine icon based on file type
         let icon = 'fa-file';
-        if (doc.type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf')) {
+        const isPDF = doc.type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf');
+        const isImage = doc.type && doc.type.startsWith('image/');
+
+        if (isPDF) {
             icon = 'fa-file-pdf';
-        } else if (doc.type && doc.type.startsWith('image/')) {
+        } else if (isImage) {
             icon = 'fa-file-image';
+        }
+
+        // Create preview content based on file type
+        let previewContent = '';
+        if (isPDF) {
+            previewContent = `<embed src="${doc.data}" type="application/pdf" class="preview-pdf-embed">`;
+        } else if (isImage) {
+            previewContent = `<img src="${doc.data}" alt="${doc.name}" class="preview-image-embed">`;
+        } else {
+            previewContent = `<p class="no-preview">Pregled nije dostupan za ovaj tip fajla</p>`;
         }
 
         return `
@@ -878,6 +967,22 @@ function renderDocumentsList(equipment) {
                     <button class="btn btn-icon btn-small" onclick="deleteDocument(${index})" title="Obriši">
                         <i class="fas fa-trash"></i>
                     </button>
+                </div>
+
+                <!-- Hover Preview -->
+                <div class="document-hover-preview">
+                    <div class="preview-header">
+                        <div>
+                            <h4>${doc.name}</h4>
+                            <span class="file-size">${formatFileSize(doc.data)}</span>
+                        </div>
+                        <button class="btn-icon-tiny" onclick="event.stopPropagation()" title="Zatvori se na klik van pregleda">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                    <div class="preview-content">
+                        ${previewContent}
+                    </div>
                 </div>
             </div>
         `;
@@ -896,9 +1001,9 @@ function generateEquipmentQR() {
     const smallContainer = document.getElementById('equipmentQRSmall');
     smallContainer.innerHTML = '';
 
-    // Generate URL that opens equipment detail
+    // Generate URL that opens equipment report using new router format
     const baseUrl = window.location.origin + window.location.pathname;
-    const qrUrl = `${baseUrl}#eq=${equipment.id}`;
+    const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
     qrCodeSmallInstance = new QRCode(smallContainer, {
         text: qrUrl,
@@ -926,9 +1031,9 @@ function showQRModal() {
     const largeContainer = document.getElementById('qrCodeLarge');
     largeContainer.innerHTML = '';
 
-    // Generate URL that opens equipment detail
+    // Generate URL that opens equipment report using new router format
     const baseUrl = window.location.origin + window.location.pathname;
-    const qrUrl = `${baseUrl}#eq=${equipment.id}`;
+    const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
     qrCodeInstance = new QRCode(largeContainer, {
         text: qrUrl,
@@ -1128,11 +1233,58 @@ function editEquipment(equipmentId) {
         preview.innerHTML = '';
     }
 
+    // Display existing documents in preview
+    const docsPreview = document.getElementById('eqDocsPreview');
+    const existingDocs = equipment.documents || [];
+    if (existingDocs.length > 0) {
+        const docsPreviewHtml = existingDocs.map((doc, index) => `
+            <div class="doc-preview-item existing-doc" data-doc-index="${index}">
+                <i class="fas fa-file-pdf"></i>
+                <span>${doc.name}</span>
+                <span class="file-size">${formatFileSize(doc.data)}</span>
+                <button type="button" class="btn-icon-tiny" onclick="removeExistingDoc(event, ${index})" title="Ukloni">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+        docsPreview.innerHTML = `<div class="docs-preview-list existing-docs">${docsPreviewHtml}</div>`;
+    } else {
+        docsPreview.innerHTML = '';
+    }
+
     openModal('equipmentModal');
 }
 
 function editCurrentEquipment() {
     editEquipment(currentEquipmentId);
+}
+
+function removeExistingDoc(event, index) {
+    event.preventDefault();
+    const docItem = event.target.closest('.doc-preview-item');
+    if (docItem) {
+        docItem.classList.add('marked-for-removal');
+        docItem.style.opacity = '0.5';
+        docItem.style.textDecoration = 'line-through';
+    }
+}
+
+function removeNewDoc(event, index) {
+    event.preventDefault();
+    const docsInput = document.getElementById('eqFormDocs');
+    if (docsInput && docsInput.files.length > 0) {
+        // Create a new FileList without the removed file
+        const dt = new DataTransfer();
+        Array.from(docsInput.files).forEach((file, i) => {
+            if (i !== index) {
+                dt.items.add(file);
+            }
+        });
+        docsInput.files = dt.files;
+
+        // Re-trigger preview update
+        previewDocuments({ target: docsInput });
+    }
 }
 
 function saveEquipment(event) {
@@ -1172,11 +1324,35 @@ function saveEquipment(event) {
         photoPromise = fileToBase64(photoInput.files[0]);
     }
 
+    // Collect existing documents that should be kept (not marked for removal)
+    const existingDocsToKeep = [];
+    if (id) {
+        const location = appData.locations.find(l => l.id === locationId);
+        const equipment = (location?.equipment || []).find(e => e.id === id);
+        if (equipment && equipment.documents) {
+            document.querySelectorAll('.existing-doc').forEach(el => {
+                if (!el.classList.contains('marked-for-removal')) {
+                    const index = parseInt(el.dataset.docIndex);
+                    if (equipment.documents[index]) {
+                        existingDocsToKeep.push(equipment.documents[index]);
+                    }
+                }
+            });
+        }
+    }
+
     // Handle document uploads
     const docsInput = document.getElementById('eqFormDocs');
     let docsPromise = Promise.resolve([]);
 
     if (docsInput && docsInput.files.length > 0) {
+        // Validate files before processing
+        const validationErrors = validateFiles(docsInput.files);
+        if (validationErrors.length > 0) {
+            alert('Greške pri upload-u:\n' + validationErrors.join('\n'));
+            return;
+        }
+
         const docPromises = Array.from(docsInput.files).map(file => {
             return fileToBase64(file).then(data => ({
                 name: file.name,
@@ -1212,10 +1388,14 @@ function saveEquipment(event) {
                 equipment.notes = notes;
                 if (photo) equipment.photo = photo;
 
-                // Add new documents
-                if (newDocs.length > 0) {
-                    if (!equipment.documents) equipment.documents = [];
-                    equipment.documents.push(...newDocs);
+                // Update documents: combine kept existing + new documents
+                equipment.documents = [...existingDocsToKeep, ...newDocs];
+
+                // Track document changes
+                const oldDocCount = equipment.documents?.length || 0;
+                const newDocCount = equipment.documents.length;
+                if (oldDocCount !== newDocCount) {
+                    changes.push(`Dokumenta: ${oldDocCount} → ${newDocCount}`);
                 }
 
                 // Add to history
@@ -1388,25 +1568,90 @@ function uploadDocuments(event) {
     if (!files.length) return;
 
     const location = appData.locations.find(l => l.id === currentLocationId);
-    if (!location) return;
+    if (!location) {
+        alert('Greška: Lokacija nije pronađena');
+        event.target.value = '';
+        return;
+    }
 
     const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
-    if (!equipment) return;
+    if (!equipment) {
+        alert('Greška: Oprema nije pronađena');
+        event.target.value = '';
+        return;
+    }
+
+    // Validate files before upload
+    const validationErrors = validateFiles(files);
+    if (validationErrors.length > 0) {
+        alert('Greške pri odabiru fajlova:\n' + validationErrors.join('\n'));
+        event.target.value = '';
+        return;
+    }
 
     if (!equipment.documents) equipment.documents = [];
 
-    const promises = Array.from(files).map(file => {
-        return fileToBase64(file).then(data => ({
-            name: file.name,
-            type: file.type,
-            data
-        }));
+    const fileCount = files.length;
+    const isBulkUpload = fileCount > 3;
+
+    // Show progress for bulk uploads
+    if (isBulkUpload) {
+        showUploadProgress(fileCount);
+    }
+
+    let uploadedCount = 0;
+
+    const promises = Array.from(files).map((file, index) => {
+        return fileToBase64(file).then(data => {
+            uploadedCount++;
+            if (isBulkUpload) {
+                updateUploadProgress(uploadedCount, fileCount);
+            }
+            return {
+                name: file.name,
+                type: file.type,
+                data
+            };
+        }).catch(error => {
+            console.error(`Error uploading ${file.name}:`, error);
+            return null; // Return null for failed uploads
+        });
     });
 
     Promise.all(promises).then(docs => {
-        equipment.documents.push(...docs);
+        // Filter out failed uploads
+        const successfulDocs = docs.filter(doc => doc !== null);
+        const failedCount = fileCount - successfulDocs.length;
+
+        equipment.documents.push(...successfulDocs);
+
+        // Add to history
+        if (!equipment.history) equipment.history = [];
+        equipment.history.push({
+            date: new Date().toISOString(),
+            action: 'Dodati dokumenti',
+            details: `${successfulDocs.length} dokumenata uploadovano${failedCount > 0 ? ` (${failedCount} neuspešno)` : ''}`
+        });
+
         saveData();
         renderDocumentsList(equipment);
+
+        if (isBulkUpload) {
+            hideUploadProgress();
+        }
+
+        // Show success/error message
+        if (failedCount > 0) {
+            alert(`Upload završen: ${successfulDocs.length} uspešno, ${failedCount} neuspešno`);
+        } else if (successfulDocs.length > 1) {
+            alert(`Uspešno uploadovano ${successfulDocs.length} dokumenata!`);
+        }
+    }).catch(error => {
+        console.error('Upload error:', error);
+        alert('Greška pri upload-u dokumenata: ' + error.message);
+        if (isBulkUpload) {
+            hideUploadProgress();
+        }
     });
 
     event.target.value = '';
@@ -1414,28 +1659,75 @@ function uploadDocuments(event) {
 
 function downloadDocument(index) {
     const location = appData.locations.find(l => l.id === currentLocationId);
-    if (!location) return;
+    if (!location) {
+        alert('Greška: Lokacija nije pronađena');
+        return;
+    }
 
     const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
-    if (!equipment || !equipment.documents[index]) return;
+    if (!equipment) {
+        alert('Greška: Oprema nije pronađena');
+        return;
+    }
+
+    if (!equipment.documents || !equipment.documents[index]) {
+        alert('Greška: Dokument nije pronađen');
+        return;
+    }
 
     const doc = equipment.documents[index];
-    const link = document.createElement('a');
-    link.href = doc.data;
-    link.download = doc.name;
-    link.click();
+
+    try {
+        const link = document.createElement('a');
+        link.href = doc.data;
+        link.download = doc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Download error:', error);
+        alert('Greška pri preuzimanju dokumenta: ' + error.message);
+    }
 }
 
 function deleteDocument(index) {
     const location = appData.locations.find(l => l.id === currentLocationId);
-    if (!location) return;
+    if (!location) {
+        alert('Greška: Lokacija nije pronađena');
+        return;
+    }
 
     const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
-    if (!equipment) return;
+    if (!equipment) {
+        alert('Greška: Oprema nije pronađena');
+        return;
+    }
 
-    equipment.documents.splice(index, 1);
-    saveData();
-    renderDocumentsList(equipment);
+    if (!equipment.documents || !equipment.documents[index]) {
+        alert('Greška: Dokument nije pronađen');
+        return;
+    }
+
+    const docName = equipment.documents[index].name;
+
+    showConfirm(
+        'Brisanje Dokumenta',
+        `Da li ste sigurni da želite da obrišete dokument "${docName}"?`,
+        () => {
+            equipment.documents.splice(index, 1);
+
+            // Add to history
+            if (!equipment.history) equipment.history = [];
+            equipment.history.push({
+                date: new Date().toISOString(),
+                action: 'Dokument obrisan',
+                details: docName
+            });
+
+            saveData();
+            renderDocumentsList(equipment);
+        }
+    );
 }
 
 // ===== CALENDAR =====
@@ -1762,20 +2054,39 @@ function previewDocuments(event) {
     const files = event.target.files;
     const preview = document.getElementById('eqDocsPreview');
 
+    // Preserve existing documents HTML
+    const existingDocsHtml = preview.querySelector('.existing-docs')?.outerHTML || '';
+
     if (!files.length) {
-        preview.innerHTML = '';
+        // Keep existing docs if no new files selected
+        preview.innerHTML = existingDocsHtml;
         return;
     }
 
-    const fileList = Array.from(files).map(file => `
-        <div class="doc-preview-item">
+    // Validate files before preview
+    const validationErrors = validateFiles(files);
+    if (validationErrors.length > 0) {
+        alert('Greške pri odabiru fajlova:\n' + validationErrors.join('\n'));
+        event.target.value = ''; // Clear invalid files
+        preview.innerHTML = existingDocsHtml;
+        return;
+    }
+
+    // Preview new files
+    const newFileList = Array.from(files).map((file, index) => `
+        <div class="doc-preview-item new-doc" data-file-index="${index}">
             <i class="fas fa-file-pdf"></i>
             <span>${file.name}</span>
-            <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
+            <span class="file-size">${formatFileSize(file.size)}</span>
+            <button type="button" class="btn-icon-tiny" onclick="removeNewDoc(event, ${index})" title="Ukloni">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     `).join('');
 
-    preview.innerHTML = `<div class="docs-preview-list">${fileList}</div>`;
+    // Combine existing + new documents
+    preview.innerHTML = existingDocsHtml +
+        (newFileList ? `<div class="docs-preview-list new-docs">${newFileList}</div>` : '');
 }
 
 function fileToBase64(file) {
@@ -1785,6 +2096,95 @@ function fileToBase64(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+}
+
+// File validation functions
+function validateFile(file) {
+    const errors = [];
+
+    // Check file type
+    const isValidType = ALLOWED_FILE_TYPES.includes(file.type) ||
+                       ALLOWED_FILE_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isValidType) {
+        errors.push(`${file.name}: Samo PDF fajlovi su dozvoljeni`);
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+        const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        errors.push(`${file.name}: Fajl prevelik (max ${maxSizeMB}MB)`);
+    }
+
+    // Check if file is not empty
+    if (file.size === 0) {
+        errors.push(`${file.name}: Fajl je prazan`);
+    }
+
+    return errors;
+}
+
+function validateFiles(files) {
+    const allErrors = [];
+    Array.from(files).forEach(file => {
+        const errors = validateFile(file);
+        allErrors.push(...errors);
+    });
+    return allErrors;
+}
+
+function formatFileSize(sizeInBytes) {
+    if (typeof sizeInBytes === 'string') {
+        // Estimate size from base64 string
+        sizeInBytes = sizeInBytes.length * 0.75;
+    }
+
+    if (sizeInBytes < 1024) {
+        return sizeInBytes.toFixed(0) + ' B';
+    } else if (sizeInBytes < 1024 * 1024) {
+        return (sizeInBytes / 1024).toFixed(1) + ' KB';
+    } else {
+        return (sizeInBytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+}
+
+// Upload progress modal functions
+function showUploadProgress(totalFiles) {
+    const progressHtml = `
+        <div id="uploadProgressModal" class="upload-progress-modal">
+            <div class="progress-content">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload u toku...</h3>
+                <div class="progress-bar-container">
+                    <div id="uploadProgressBar" class="progress-bar" style="width: 0%"></div>
+                </div>
+                <p id="uploadProgressText">Uploadujem 0 / ${totalFiles} dokumenata</p>
+            </div>
+        </div>
+    `;
+
+    // Remove existing progress modal if any
+    const existing = document.getElementById('uploadProgressModal');
+    if (existing) existing.remove();
+
+    document.body.insertAdjacentHTML('beforeend', progressHtml);
+}
+
+function updateUploadProgress(current, total) {
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressText = document.getElementById('uploadProgressText');
+
+    if (progressBar && progressText) {
+        const percentage = Math.round((current / total) * 100);
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = `Uploadujem ${current} / ${total} dokumenata`;
+    }
+}
+
+function hideUploadProgress() {
+    const modal = document.getElementById('uploadProgressModal');
+    if (modal) {
+        setTimeout(() => modal.remove(), 500);
+    }
 }
 
 function formatDate(date) {

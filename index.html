@@ -25,6 +25,19 @@
             </div>
             <h1 class="app-title">Evidencija MLFF Opreme</h1>
             <div class="header-actions">
+                <!-- Authentication UI -->
+                <div id="authContainer" class="auth-container">
+                    <button class="btn btn-icon" id="loginBtn" onclick="loginWithGoogle()" title="Prijavi se" style="display:none">
+                        <i class="fab fa-google"></i>
+                    </button>
+                    <div id="userInfo" class="user-info" style="display:none">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="userEmail"></span>
+                    </div>
+                    <button class="btn btn-icon" id="logoutBtn" onclick="logout()" title="Odjavi se" style="display:none">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
                 <div class="data-status" id="dataStatus" onclick="showHelpModal()">
                     <i class="fas fa-database"></i>
                     <span id="dataStatusText">Podaci sačuvani</span>
@@ -243,6 +256,9 @@
                                 </div>
                             </div>
                             <div class="location-actions">
+                                <button class="btn btn-primary" onclick="router.navigate('/report/location/' + currentLocationId)">
+                                    <i class="fas fa-file-alt"></i> Prikaži Izveštaj
+                                </button>
                                 <button class="btn btn-secondary" onclick="editCurrentLocation()">
                                     <i class="fas fa-edit"></i> Izmeni Lokaciju
                                 </button>
@@ -444,6 +460,9 @@
                         </div>
 
                         <div class="equipment-actions">
+                            <button class="btn btn-primary" onclick="router.navigate('/report/equipment/' + currentEquipmentId)">
+                                <i class="fas fa-file-alt"></i> Prikaži Izveštaj
+                            </button>
                             <button class="btn btn-secondary" onclick="editCurrentEquipment()">
                                 <i class="fas fa-edit"></i> Izmeni Opremu
                             </button>
@@ -455,6 +474,38 @@
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <!-- Location Report View -->
+                <div id="locationReportView" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-back" onclick="router.navigate('/location/' + currentLocationId)">
+                            <i class="fas fa-arrow-left"></i> Nazad na Lokaciju
+                        </button>
+                        <h2>Izveštaj Lokacije</h2>
+                        <div class="view-actions">
+                            <button class="btn btn-secondary" onclick="printLocationReport()">
+                                <i class="fas fa-print"></i> Štampaj
+                            </button>
+                        </div>
+                    </div>
+                    <div id="locationReportContent" class="report-view-content"></div>
+                </div>
+
+                <!-- Equipment Report View -->
+                <div id="equipmentReportView" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-back" onclick="router.navigate('/equipment/' + currentEquipmentId)">
+                            <i class="fas fa-arrow-left"></i> Nazad na Opremu
+                        </button>
+                        <h2>Izveštaj Opreme</h2>
+                        <div class="view-actions">
+                            <button class="btn btn-secondary" onclick="printEquipmentReport()">
+                                <i class="fas fa-print"></i> Štampaj
+                            </button>
+                        </div>
+                    </div>
+                    <div id="equipmentReportContent" class="report-view-content"></div>
                 </div>
             </main>
         </div>
@@ -893,6 +944,15 @@
         </div>
     </div>
 
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Supabase Configuration and Services -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-service.js"></script>
+
+    <!-- Application Scripts -->
+    <script src="js/router.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

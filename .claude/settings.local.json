@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nAdd custom equipment types, PDF support, and purple Orion branding\n\n- Added predefined equipment types: VDX, VRX, Antena, Switch, TRC, TRM, intel, jetson, Wi-FI\n- Implemented custom equipment type input with localStorage memory\n- Custom types are saved and offered in datalist for future use\n- Enhanced PDF document support with accept filter and PDF-specific icon\n- Updated \"Orion\" branding to purple color (#a855f7) throughout the application\n- Filter dropdown now dynamically populates with all equipment types in use\n- Updated OPIS_APLIKACIJE.txt with version 1.1 changes and features\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")"
-    ]
-  }
-}

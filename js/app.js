@@ -812,6 +812,10 @@ function renderEquipmentDetail() {
     document.getElementById('eqInventory').textContent = equipment.inventoryNumber || '-';
     document.getElementById('eqType').textContent = equipment.type || '-';
     document.getElementById('eqStatus').textContent = status;
+    document.getElementById('eqSubLocation').textContent = equipment.sub_location || '-';
+    document.getElementById('eqManufacturer').textContent = equipment.manufacturer || '-';
+    document.getElementById('eqModel').textContent = equipment.model || '-';
+    document.getElementById('eqSerialNumber').textContent = equipment.serial_number || '-';
     document.getElementById('eqIP').textContent = equipment.ip || '-';
     document.getElementById('eqMAC').textContent = equipment.mac || '-';
     document.getElementById('eqX').textContent = equipment.x !== undefined && equipment.x !== null ? `${equipment.x} cm` : '-';
@@ -1005,12 +1009,18 @@ function generateEquipmentQR() {
     const baseUrl = window.location.origin + window.location.pathname;
     const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
-    qrCodeSmallInstance = new QRCode(smallContainer, {
+    qrCodeSmallInstance = new EasyQRCode(smallContainer, {
         text: qrUrl,
         width: 100,
         height: 100,
         colorDark: '#000000',
-        colorLight: '#ffffff'
+        colorLight: '#ffffff',
+        logo: 'images/mlff-logo.svg',
+        logoWidth: 30,
+        logoHeight: 30,
+        logoBackgroundColor: '#ffffff',
+        logoBackgroundTransparent: false,
+        correctLevel: QRCode.CorrectLevel.H // High error correction for logo overlay
     });
 }
 
@@ -1035,12 +1045,18 @@ function showQRModal() {
     const baseUrl = window.location.origin + window.location.pathname;
     const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
-    qrCodeInstance = new QRCode(largeContainer, {
+    qrCodeInstance = new EasyQRCode(largeContainer, {
         text: qrUrl,
         width: 150,
         height: 150,
         colorDark: '#000000',
-        colorLight: '#ffffff'
+        colorLight: '#ffffff',
+        logo: 'images/mlff-logo.svg',
+        logoWidth: 45,
+        logoHeight: 45,
+        logoBackgroundColor: '#ffffff',
+        logoBackgroundTransparent: false,
+        correctLevel: QRCode.CorrectLevel.H // High error correction for logo overlay
     });
 
     openModal('qrModal');
@@ -1215,6 +1231,10 @@ function editEquipment(equipmentId) {
     document.getElementById('eqFormType').value = equipment.type || '';
     document.getElementById('eqFormInventory').value = equipment.inventoryNumber || '';
     document.getElementById('eqFormStatus').value = equipment.status || 'Aktivna';
+    document.getElementById('eqFormSubLocation').value = equipment.sub_location || '';
+    document.getElementById('eqFormManufacturer').value = equipment.manufacturer || '';
+    document.getElementById('eqFormModel').value = equipment.model || '';
+    document.getElementById('eqFormSerialNumber').value = equipment.serial_number || '';
     document.getElementById('eqFormIP').value = equipment.ip || '';
     document.getElementById('eqFormMAC').value = equipment.mac || '';
     document.getElementById('eqFormX').value = equipment.x || '';
@@ -1306,6 +1326,10 @@ function saveEquipment(event) {
 
     const inventoryNumber = document.getElementById('eqFormInventory').value.trim();
     const status = document.getElementById('eqFormStatus').value;
+    const subLocation = document.getElementById('eqFormSubLocation').value || null;
+    const manufacturer = document.getElementById('eqFormManufacturer').value.trim() || null;
+    const model = document.getElementById('eqFormModel').value.trim() || null;
+    const serialNumber = document.getElementById('eqFormSerialNumber').value.trim() || null;
     const ip = document.getElementById('eqFormIP').value.trim();
     const mac = document.getElementById('eqFormMAC').value.trim();
     const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
@@ -1376,6 +1400,10 @@ function saveEquipment(event) {
                 equipment.type = type;
                 equipment.inventoryNumber = inventoryNumber;
                 equipment.status = status;
+                equipment.sub_location = subLocation;
+                equipment.manufacturer = manufacturer;
+                equipment.model = model;
+                equipment.serial_number = serialNumber;
                 equipment.ip = ip;
                 equipment.mac = mac;
                 equipment.x = x;
@@ -1414,6 +1442,10 @@ function saveEquipment(event) {
                 type,
                 inventoryNumber,
                 status,
+                sub_location: subLocation,
+                manufacturer,
+                model,
+                serial_number: serialNumber,
                 ip,
                 mac,
                 x,

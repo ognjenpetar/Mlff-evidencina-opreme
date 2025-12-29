@@ -1391,10 +1391,28 @@ function saveEquipment(event) {
         if (id) {
             const equipment = location.equipment.find(e => e.id === id);
             if (equipment) {
-                // Track changes
+                // Track changes with old/new values for enhanced audit
                 const changes = [];
+                const fieldChanges = []; // Store detailed change tracking
+
                 if (equipment.status !== status) {
                     changes.push(`Status: ${equipment.status || 'Aktivna'} → ${status}`);
+                    fieldChanges.push({
+                        field_name: 'status',
+                        old_value: equipment.status || 'Aktivna',
+                        new_value: status
+                    });
+                }
+
+                // Track other important field changes
+                if (equipment.type !== type) {
+                    fieldChanges.push({ field_name: 'type', old_value: equipment.type, new_value: type });
+                }
+                if (equipment.ip !== ip) {
+                    fieldChanges.push({ field_name: 'ip_address', old_value: equipment.ip, new_value: ip });
+                }
+                if (equipment.sub_location !== subLocation) {
+                    fieldChanges.push({ field_name: 'sub_location', old_value: equipment.sub_location, new_value: subLocation });
                 }
 
                 equipment.type = type;
@@ -1426,13 +1444,15 @@ function saveEquipment(event) {
                     changes.push(`Dokumenta: ${oldDocCount} → ${newDocCount}`);
                 }
 
-                // Add to history
-                if (changes.length > 0) {
+                // Add to history with enhanced tracking
+                if (changes.length > 0 || fieldChanges.length > 0) {
                     if (!equipment.history) equipment.history = [];
                     equipment.history.push({
                         date: new Date().toISOString(),
                         action: 'Izmena podataka',
-                        details: changes.join(', ')
+                        details: changes.join(', '),
+                        // Enhanced audit trail fields
+                        field_changes: fieldChanges.length > 0 ? fieldChanges : undefined
                     });
                 }
             }

@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet CSS for OpenStreetMap -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- QR Code Library with Logo Support -->
+    <script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.5.0/dist/easy.qrcode.min.js"></script>
     <!-- Leaflet JS for OpenStreetMap -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -358,6 +358,30 @@
                                         <span class="info-label">Status:</span>
                                         <span class="info-value" id="eqStatus">-</span>
                                     </div>
+                                    <div class="info-row">
+                                        <span class="info-label">
+                                            <i class="fas fa-building"></i> Tip ormarića:
+                                        </span>
+                                        <span class="info-value" id="eqSubLocation">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">
+                                            <i class="fas fa-industry"></i> Proizvođač:
+                                        </span>
+                                        <span class="info-value" id="eqManufacturer">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">
+                                            <i class="fas fa-tag"></i> Model:
+                                        </span>
+                                        <span class="info-value" id="eqModel">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">
+                                            <i class="fas fa-barcode"></i> Serijski broj:
+                                        </span>
+                                        <span class="info-value" id="eqSerialNumber">-</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -604,6 +628,38 @@
                                 <option value="Neispravna">Neispravna</option>
                                 <option value="Povučena">Povučena</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="eqFormSubLocation">
+                                <i class="fas fa-building"></i> Tip Ormarića
+                            </label>
+                            <select id="eqFormSubLocation">
+                                <option value="">-- Nije primenjivo --</option>
+                                <option value="Gentri">Gentri</option>
+                                <option value="Ormar">Ormar</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eqFormManufacturer">
+                                <i class="fas fa-industry"></i> Proizvođač
+                            </label>
+                            <input type="text" id="eqFormManufacturer" placeholder="npr. Cisco">
+                        </div>
+                        <div class="form-group">
+                            <label for="eqFormModel">
+                                <i class="fas fa-tag"></i> Model
+                            </label>
+                            <input type="text" id="eqFormModel" placeholder="npr. Catalyst 2960">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eqFormSerialNumber">
+                                <i class="fas fa-barcode"></i> Serijski Broj
+                            </label>
+                            <input type="text" id="eqFormSerialNumber" placeholder="Serijski broj proizvođača">
                         </div>
                     </div>
                 </div>

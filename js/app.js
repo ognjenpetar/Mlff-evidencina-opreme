@@ -812,6 +812,10 @@ function renderEquipmentDetail() {
     document.getElementById('eqInventory').textContent = equipment.inventoryNumber || '-';
     document.getElementById('eqType').textContent = equipment.type || '-';
     document.getElementById('eqStatus').textContent = status;
+    document.getElementById('eqSubLocation').textContent = equipment.sub_location || '-';
+    document.getElementById('eqManufacturer').textContent = equipment.manufacturer || '-';
+    document.getElementById('eqModel').textContent = equipment.model || '-';
+    document.getElementById('eqSerialNumber').textContent = equipment.serial_number || '-';
     document.getElementById('eqIP').textContent = equipment.ip || '-';
     document.getElementById('eqMAC').textContent = equipment.mac || '-';
     document.getElementById('eqX').textContent = equipment.x !== undefined && equipment.x !== null ? `${equipment.x} cm` : '-';
@@ -1005,12 +1009,18 @@ function generateEquipmentQR() {
     const baseUrl = window.location.origin + window.location.pathname;
     const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
-    qrCodeSmallInstance = new QRCode(smallContainer, {
+    qrCodeSmallInstance = new EasyQRCode(smallContainer, {
         text: qrUrl,
         width: 100,
         height: 100,
         colorDark: '#000000',
-        colorLight: '#ffffff'
+        colorLight: '#ffffff',
+        logo: 'images/mlff-logo.svg',
+        logoWidth: 30,
+        logoHeight: 30,
+        logoBackgroundColor: '#ffffff',
+        logoBackgroundTransparent: false,
+        correctLevel: QRCode.CorrectLevel.H // High error correction for logo overlay
     });
 }
 
@@ -1035,12 +1045,18 @@ function showQRModal() {
     const baseUrl = window.location.origin + window.location.pathname;
     const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
-    qrCodeInstance = new QRCode(largeContainer, {
+    qrCodeInstance = new EasyQRCode(largeContainer, {
         text: qrUrl,
         width: 150,
         height: 150,
         colorDark: '#000000',
-        colorLight: '#ffffff'
+        colorLight: '#ffffff',
+        logo: 'images/mlff-logo.svg',
+        logoWidth: 45,
+        logoHeight: 45,
+        logoBackgroundColor: '#ffffff',
+        logoBackgroundTransparent: false,
+        correctLevel: QRCode.CorrectLevel.H // High error correction for logo overlay
     });
 
     openModal('qrModal');
@@ -1215,6 +1231,10 @@ function editEquipment(equipmentId) {
     document.getElementById('eqFormType').value = equipment.type || '';
     document.getElementById('eqFormInventory').value = equipment.inventoryNumber || '';
     document.getElementById('eqFormStatus').value = equipment.status || 'Aktivna';
+    document.getElementById('eqFormSubLocation').value = equipment.sub_location || '';
+    document.getElementById('eqFormManufacturer').value = equipment.manufacturer || '';
+    document.getElementById('eqFormModel').value = equipment.model || '';
+    document.getElementById('eqFormSerialNumber').value = equipment.serial_number || '';
     document.getElementById('eqFormIP').value = equipment.ip || '';
     document.getElementById('eqFormMAC').value = equipment.mac || '';
     document.getElementById('eqFormX').value = equipment.x || '';
@@ -1306,6 +1326,10 @@ function saveEquipment(event) {
 
     const inventoryNumber = document.getElementById('eqFormInventory').value.trim();
     const status = document.getElementById('eqFormStatus').value;
+    const subLocation = document.getElementById('eqFormSubLocation').value || null;
+    const manufacturer = document.getElementById('eqFormManufacturer').value.trim() || null;
+    const model = document.getElementById('eqFormModel').value.trim() || null;
+    const serialNumber = document.getElementById('eqFormSerialNumber').value.trim() || null;
     const ip = document.getElementById('eqFormIP').value.trim();
     const mac = document.getElementById('eqFormMAC').value.trim();
     const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
@@ -1367,15 +1391,37 @@ function saveEquipment(event) {
         if (id) {
             const equipment = location.equipment.find(e => e.id === id);
             if (equipment) {
-                // Track changes
+                // Track changes with old/new values for enhanced audit
                 const changes = [];
+                const fieldChanges = []; // Store detailed change tracking
+
                 if (equipment.status !== status) {
                     changes.push(`Status: ${equipment.status || 'Aktivna'} → ${status}`);
+                    fieldChanges.push({
+                        field_name: 'status',
+                        old_value: equipment.status || 'Aktivna',
+                        new_value: status
+                    });
+                }
+
+                // Track other important field changes
+                if (equipment.type !== type) {
+                    fieldChanges.push({ field_name: 'type', old_value: equipment.type, new_value: type });
+                }
+                if (equipment.ip !== ip) {
+                    fieldChanges.push({ field_name: 'ip_address', old_value: equipment.ip, new_value: ip });
+                }
+                if (equipment.sub_location !== subLocation) {
+                    fieldChanges.push({ field_name: 'sub_location', old_value: equipment.sub_location, new_value: subLocation });
                 }
 
                 equipment.type = type;
                 equipment.inventoryNumber = inventoryNumber;
                 equipment.status = status;
+                equipment.sub_location = subLocation;
+                equipment.manufacturer = manufacturer;
+                equipment.model = model;
+                equipment.serial_number = serialNumber;
                 equipment.ip = ip;
                 equipment.mac = mac;
                 equipment.x = x;
@@ -1398,13 +1444,15 @@ function saveEquipment(event) {
                     changes.push(`Dokumenta: ${oldDocCount} → ${newDocCount}`);
                 }
 
-                // Add to history
-                if (changes.length > 0) {
+                // Add to history with enhanced tracking
+                if (changes.length > 0 || fieldChanges.length > 0) {
                     if (!equipment.history) equipment.history = [];
                     equipment.history.push({
                         date: new Date().toISOString(),
                         action: 'Izmena podataka',
-                        details: changes.join(', ')
+                        details: changes.join(', '),
+                        // Enhanced audit trail fields
+                        field_changes: fieldChanges.length > 0 ? fieldChanges : undefined
                     });
                 }
             }
@@ -1414,6 +1462,10 @@ function saveEquipment(event) {
                 type,
                 inventoryNumber,
                 status,
+                sub_location: subLocation,
+                manufacturer,
+                model,
+                serial_number: serialNumber,
                 ip,
                 mac,
                 x,

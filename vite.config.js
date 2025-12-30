@@ -1,4 +1,6 @@
 import { defineConfig } from 'vite';
+import { copyFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,22 +17,6 @@ export default defineConfig({
       input: {
         main: './index.html',
         migration: './migration.html'
-      },
-      output: {
-        // Keep JS files in js/ directory
-        entryFileNames: 'js/[name].js',
-        chunkFileNames: 'js/[name]-[hash].js',
-        assetFileNames: (assetInfo) => {
-          // Keep CSS in css/, images in images/, etc.
-          const info = assetInfo.name.split('.');
-          const ext = info[info.length - 1];
-          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
-            return 'images/[name][extname]';
-          } else if (ext === 'css') {
-            return 'css/[name][extname]';
-          }
-          return 'assets/[name][extname]';
-        }
       }
     }
   },
@@ -42,5 +28,35 @@ export default defineConfig({
   },
 
   // Environment variable prefix
-  envPrefix: 'VITE_'
+  envPrefix: 'VITE_',
+
+  // Plugins
+  plugins: [
+    {
+      name: 'copy-js-files',
+      closeBundle() {
+        // Copy JS files to dist/js folder after build
+        const jsFolderDist = join(process.cwd(), 'dist', 'js');
+        const jsFolderSrc = join(process.cwd(), 'js');
+
+        // Create dist/js folder if it doesn't exist
+        try {
+          mkdirSync(jsFolderDist, { recursive: true });
+        } catch (e) {
+          // Folder already exists
+        }
+
+        // Copy all JS files
+        const jsFiles = ['supabase-config.js', 'supabase-service.js', 'router.js', 'app.js'];
+        jsFiles.forEach(file => {
+          try {
+            copyFileSync(join(jsFolderSrc, file), join(jsFolderDist, file));
+            console.log(`✅ Copied ${file} to dist/js/`);
+          } catch (e) {
+            console.error(`❌ Failed to copy ${file}:`, e.message);
+          }
+        });
+      }
+    }
+  ]
 });

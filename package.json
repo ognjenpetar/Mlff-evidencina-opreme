@@ -1,7 +1,7 @@
 {
   "name": "mlff-equipment-tracking",
-  "version": "3.0.0",
-  "description": "MLFF Equipment Tracking System - Supabase Edition",
+  "version": "4.0.0",
+  "description": "MLFF Equipment Tracking System - Enhanced Edition with QR Logo and Sub-locations",
   "type": "module",
   "scripts": {
     "dev": "vite",

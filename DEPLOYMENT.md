@@ -1,6 +1,6 @@
-# Deployment Guide - MLFF Equipment Tracking v3.0
+# Deployment Guide - MLFF Equipment Tracking v4.0
 
-**Supabase + GitHub Pages Edition**
+**Enhanced Edition: Supabase + GitHub Pages**
 
 Ovaj dokument pruža kompletan vodič za deployment aplikacije na Supabase backend + GitHub Pages hosting.
 
@@ -72,6 +72,24 @@ Ovaj dokument pruža kompletan vodič za deployment aplikacije na Supabase backe
 2. Paste u SQL Editor
 3. Klikni **"Run"**
 4. ✅ Success: "Success. No rows returned"
+
+**✨ Migracija 5: Sub-Location Field (v4.0)**
+1. Kopiraj SVE iz `supabase/migrations/005_sub_location_field.sql`
+2. Paste u SQL Editor
+3. Klikni **"Run"**
+4. ✅ Success: Dodaje `sub_location` kolonu u equipment tabelu
+
+**✨ Migracija 6: Shared Documents (v4.0)**
+1. Kopiraj SVE iz `supabase/migrations/006_shared_documents.sql`
+2. Paste u SQL Editor
+3. Klikni **"Run"**
+4. ✅ Success: Kreira `shared_documents` tabelu
+
+**✨ Migracija 7: Enhanced Audit Log (v4.0)**
+1. Kopiraj SVE iz `supabase/migrations/007_enhanced_audit_log.sql`
+2. Paste u SQL Editor
+3. Klikni **"Run"**
+4. ✅ Success: Dodaje `old_value`, `new_value`, `field_name` u audit_log
 
 ### 2.3 Verifikacija
 

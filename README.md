@@ -1,11 +1,11 @@
 # MLFF Equipment Tracking System
 
-**Version 3.0 - Supabase Edition** | [Orion E-mobility](https://github.com/ognjenpetar/mlff-equipment-tracking)
+**Version 4.0 - Enhanced Edition** | [Orion E-mobility](https://github.com/ognjenpetar/mlff-equipment-tracking)
 
-A modern web application for tracking and managing MLFF (Medium-Large Fiber Facility) equipment installations with GPS coordinates, QR codes, maintenance history, and document management.
+A modern web application for tracking and managing MLFF (Medium-Large Fiber Facility) equipment installations with GPS coordinates, QR codes with logo, maintenance history, and document management.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-3.0-green.svg)
+![Version](https://img.shields.io/badge/version-4.0-green.svg)
 ![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
 
 ---
@@ -15,10 +15,12 @@ A modern web application for tracking and managing MLFF (Medium-Large Fiber Faci
 ### Core Functionality
 - ✅ **Location Management** - Track installation sites with GPS coordinates and interactive maps
 - ✅ **Equipment Tracking** - Complete inventory with technical specs, photos, and status
-- ✅ **QR Code Generation** - Instant access to equipment reports via smartphone
+- ✅ **QR Code with Logo** - Branded QR codes with MLFF logo overlay for instant equipment access
+- ✅ **Sub-Location Categorization** - Organize equipment by cabinet type (Gentri/Ormar)
+- ✅ **Extended Equipment Fields** - Track manufacturer, model, and serial number
 - ✅ **Document Management** - Upload and store PDFs (manuals, certificates, specs) up to 50MB
 - ✅ **Maintenance History** - Track service records, costs, and upcoming maintenance
-- ✅ **Audit Logging** - Complete change history with user tracking
+- ✅ **Enhanced Audit Logging** - Detailed change tracking with old/new value comparison
 - ✅ **Custom Equipment Types** - Add your own equipment categories
 - ✅ **Search & Filter** - Fast search by inventory number, type, status, or location
 
@@ -99,6 +101,10 @@ supabase/migrations/001_initial_schema.sql
 supabase/migrations/002_rls_policies.sql
 supabase/migrations/003_indexes.sql
 supabase/migrations/004_storage_setup.sql
+# Version 4.0 enhancements:
+supabase/migrations/005_sub_location_field.sql
+supabase/migrations/006_shared_documents.sql
+supabase/migrations/007_enhanced_audit_log.sql
 
 # 3. Get API credentials
 # Settings → API → Copy:

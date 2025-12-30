@@ -33,7 +33,7 @@ export default defineConfig({
   // Plugins
   plugins: [
     {
-      name: 'copy-js-files',
+      name: 'copy-assets',
       closeBundle() {
         // Copy JS files to dist/js folder after build
         const jsFolderDist = join(process.cwd(), 'dist', 'js');
@@ -56,6 +56,28 @@ export default defineConfig({
             console.error(`❌ Failed to copy ${file}:`, e.message);
           }
         });
+
+        // Copy images folder to dist/images folder after build
+        const imagesFolderDist = join(process.cwd(), 'dist', 'images');
+        const imagesFolderSrc = join(process.cwd(), 'images');
+
+        // Create dist/images folder if it doesn't exist
+        try {
+          mkdirSync(imagesFolderDist, { recursive: true });
+        } catch (e) {
+          // Folder already exists
+        }
+
+        // Copy MLFF logo
+        try {
+          copyFileSync(
+            join(imagesFolderSrc, 'mlff-logo.svg'),
+            join(imagesFolderDist, 'mlff-logo.svg')
+          );
+          console.log(`✅ Copied mlff-logo.svg to dist/images/`);
+        } catch (e) {
+          console.error(`❌ Failed to copy mlff-logo.svg:`, e.message);
+        }
       }
     }
   ]

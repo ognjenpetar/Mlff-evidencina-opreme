@@ -1009,7 +1009,7 @@ function generateEquipmentQR() {
     const baseUrl = window.location.origin + window.location.pathname;
     const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
-    qrCodeSmallInstance = new EasyQRCode(smallContainer, {
+    qrCodeSmallInstance = new QRCode(smallContainer, {
         text: qrUrl,
         width: 100,
         height: 100,
@@ -1045,7 +1045,7 @@ function showQRModal() {
     const baseUrl = window.location.origin + window.location.pathname;
     const qrUrl = `${baseUrl}#/report/equipment/${equipment.id}`;
 
-    qrCodeInstance = new EasyQRCode(largeContainer, {
+    qrCodeInstance = new QRCode(largeContainer, {
         text: qrUrl,
         width: 150,
         height: 150,

@@ -7,6 +7,17 @@ const BACKUP_REMINDER_DAYS = 7;
 // Predefined equipment types
 const DEFAULT_EQUIPMENT_TYPES = ['VDX', 'VRX', 'Antena', 'Switch', 'TRC', 'TRM', 'intel', 'jetson', 'Wi-FI'];
 
+// Sub-location equipment type mapping
+const SUB_LOCATION_EQUIPMENT_TYPES = {
+    'Gentri': ['Antena', 'VDX', 'VRX', 'IUX', 'IUV'],
+    'Ormar': ['TRC', 'TCM', 'Switch', 'Router', 'Jetson', 'Intel', 'Napajanje']
+};
+
+const ALL_EQUIPMENT_TYPES = [
+    ...SUB_LOCATION_EQUIPMENT_TYPES['Gentri'],
+    ...SUB_LOCATION_EQUIPMENT_TYPES['Ormar']
+];
+
 // File upload validation constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['application/pdf'];
@@ -155,6 +166,25 @@ function showLocationDetail(locationId) {
 
 function showEquipmentDetail(equipmentId) {
     router.navigate(`/equipment/${equipmentId}`);
+}
+
+/**
+ * Switch between Gentri and Ormar sub-location tabs
+ */
+function showSubLocationTab(subLocation, event) {
+    // Remove active class from all tabs
+    document.querySelectorAll('.sub-location-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.sub-location-section').forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Add active class to selected tab
+    if (event && event.target) {
+        event.target.closest('.tab-btn').classList.add('active');
+    }
+    document.getElementById(`${subLocation.toLowerCase()}Section`).classList.add('active');
 }
 
 // Report view functions
@@ -335,13 +365,18 @@ function performSearch(query) {
             });
         }
 
-        // Search equipment
+        // Search equipment - partial matching on all fields
         (loc.equipment || []).forEach(eq => {
             if (eq.inventoryNumber.toLowerCase().includes(q) ||
                 eq.type.toLowerCase().includes(q) ||
                 (eq.ip && eq.ip.toLowerCase().includes(q)) ||
                 (eq.mac && eq.mac.toLowerCase().includes(q)) ||
-                (eq.installer && eq.installer.toLowerCase().includes(q))) {
+                (eq.installer && eq.installer.toLowerCase().includes(q)) ||
+                (eq.manufacturer && eq.manufacturer.toLowerCase().includes(q)) ||
+                (eq.model && eq.model.toLowerCase().includes(q)) ||
+                (eq.serial_number && eq.serial_number.toLowerCase().includes(q)) ||
+                (eq.sub_location && eq.sub_location.toLowerCase().includes(q)) ||
+                (eq.notes && eq.notes.toLowerCase().includes(q))) {
                 results.push({
                     type: 'equipment',
                     id: eq.id,
@@ -714,12 +749,24 @@ function renderLocationDetail() {
         noImgDiv.style.display = 'flex';
     }
 
-    renderEquipmentGrid(location);
+    // Group equipment by sub-location
+    const gentriEquipment = (location.equipment || []).filter(eq => eq.sub_location === 'Gentri');
+    const ormarEquipment = (location.equipment || []).filter(eq => eq.sub_location === 'Ormar');
+
+    // Update counts
+    const gentriCountEl = document.getElementById('gentriCount');
+    const ormarCountEl = document.getElementById('ormarCount');
+    if (gentriCountEl) gentriCountEl.textContent = gentriEquipment.length;
+    if (ormarCountEl) ormarCountEl.textContent = ormarEquipment.length;
+
+    // Render equipment grids for each sub-location
+    renderEquipmentGrid(location, '', '', 'equipmentGentriGrid', gentriEquipment);
+    renderEquipmentGrid(location, '', '', 'equipmentOrmarGrid', ormarEquipment);
 }
 
-function renderEquipmentGrid(location, searchQuery = '', statusFilter = '') {
-    const container = document.getElementById('equipmentGrid');
-    let equipment = location.equipment || [];
+function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', containerId = 'equipmentGrid', equipmentArray = null) {
+    const container = document.getElementById(containerId);
+    let equipment = equipmentArray !== null ? equipmentArray : (location.equipment || []);
 
     // Apply filters
     if (searchQuery) {
@@ -927,70 +974,128 @@ function renderHistoryLog(equipment) {
     }).join('');
 }
 
-function renderDocumentsList(equipment) {
+async function renderDocumentsList(equipment) {
     const container = document.getElementById('documentsList');
-    const documents = equipment.documents || [];
 
-    if (documents.length === 0) {
-        container.innerHTML = '<p class="no-data">Nema dodatne dokumentacije</p>';
-        return;
+    // Specific documents (from equipment.documents)
+    const specificDocs = equipment.documents || [];
+
+    // Shared documents (from type_shared_documents table) - fetch from Supabase
+    let sharedDocs = [];
+    try {
+        if (typeof supabase !== 'undefined' && equipment.type) {
+            const { data, error } = await supabase
+                .from('type_shared_documents')
+                .select('*')
+                .eq('equipment_type', equipment.type)
+                .order('uploaded_at', { ascending: false });
+
+            if (!error && data) {
+                sharedDocs = data;
+            }
+        }
+    } catch (e) {
+        console.warn('Could not fetch shared documents:', e);
     }
 
-    container.innerHTML = documents.map((doc, index) => {
-        // Determine icon based on file type
-        let icon = 'fa-file';
-        const isPDF = doc.type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf');
-        const isImage = doc.type && doc.type.startsWith('image/');
+    let html = '';
 
-        if (isPDF) {
-            icon = 'fa-file-pdf';
-        } else if (isImage) {
-            icon = 'fa-file-image';
-        }
+    // Specific documents section
+    html += `
+        <div class="docs-section">
+            <h5><i class="fas fa-file-alt"></i> Specifična Dokumentacija</h5>
+            ${specificDocs.length === 0
+                ? '<p class="no-data">Nema specifične dokumentacije</p>'
+                : specificDocs.map((doc, index) => renderSpecificDocumentItem(doc, index)).join('')
+            }
+        </div>
+    `;
 
-        // Create preview content based on file type
-        let previewContent = '';
-        if (isPDF) {
-            previewContent = `<embed src="${doc.data}" type="application/pdf" class="preview-pdf-embed">`;
-        } else if (isImage) {
-            previewContent = `<img src="${doc.data}" alt="${doc.name}" class="preview-image-embed">`;
-        } else {
-            previewContent = `<p class="no-preview">Pregled nije dostupan za ovaj tip fajla</p>`;
-        }
+    // Shared documents section
+    html += `
+        <div class="docs-section shared-docs">
+            <h5><i class="fas fa-share-alt"></i> Opšta Dokumentacija (${equipment.type})</h5>
+            ${sharedDocs.length === 0
+                ? '<p class="no-data">Nema opšte dokumentacije</p>'
+                : sharedDocs.map((doc) => renderSharedDocumentItem(doc)).join('')
+            }
+        </div>
+    `;
 
-        return `
-            <div class="document-item">
-                <span class="document-name">
-                    <i class="fas ${icon}"></i>
-                    ${doc.name}
-                </span>
-                <div class="document-actions">
-                    <button class="btn btn-icon btn-small" onclick="downloadDocument(${index})" title="Preuzmi">
-                        <i class="fas fa-download"></i>
-                    </button>
-                    <button class="btn btn-icon btn-small" onclick="deleteDocument(${index})" title="Obriši">
-                        <i class="fas fa-trash"></i>
+    container.innerHTML = html;
+}
+
+function renderSpecificDocumentItem(doc, index) {
+    // Determine icon based on file type
+    let icon = 'fa-file';
+    const isPDF = doc.type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf');
+    const isImage = doc.type && doc.type.startsWith('image/');
+
+    if (isPDF) {
+        icon = 'fa-file-pdf';
+    } else if (isImage) {
+        icon = 'fa-file-image';
+    }
+
+    // Create preview content based on file type
+    let previewContent = '';
+    if (isPDF) {
+        previewContent = `<embed src="${doc.data}" type="application/pdf" class="preview-pdf-embed">`;
+    } else if (isImage) {
+        previewContent = `<img src="${doc.data}" alt="${doc.name}" class="preview-image-embed">`;
+    } else {
+        previewContent = `<p class="no-preview">Pregled nije dostupan za ovaj tip fajla</p>`;
+    }
+
+    return `
+        <div class="document-item specific">
+            <span class="document-name">
+                <i class="fas ${icon}"></i>
+                ${doc.name}
+            </span>
+            <div class="document-actions">
+                <button class="btn btn-icon btn-small" onclick="downloadDocument(${index})" title="Preuzmi">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn btn-icon btn-small" onclick="deleteDocument(${index})" title="Obriši">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+
+            <!-- Hover Preview -->
+            <div class="document-hover-preview">
+                <div class="preview-header">
+                    <div>
+                        <h4>${doc.name}</h4>
+                        <span class="file-size">${formatFileSize(doc.data)}</span>
+                    </div>
+                    <button class="btn-icon-tiny" onclick="event.stopPropagation()" title="Zatvori se na klik van pregleda">
+                        <i class="fas fa-info-circle"></i>
                     </button>
                 </div>
-
-                <!-- Hover Preview -->
-                <div class="document-hover-preview">
-                    <div class="preview-header">
-                        <div>
-                            <h4>${doc.name}</h4>
-                            <span class="file-size">${formatFileSize(doc.data)}</span>
-                        </div>
-                        <button class="btn-icon-tiny" onclick="event.stopPropagation()" title="Zatvori se na klik van pregleda">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    </div>
-                    <div class="preview-content">
-                        ${previewContent}
-                    </div>
+                <div class="preview-content">
+                    ${previewContent}
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+}
+
+function renderSharedDocumentItem(doc) {
+    return `
+        <div class="document-item shared">
+            <span class="document-name">
+                <i class="fas fa-file-pdf"></i>
+                ${doc.name}
+                <span class="badge-shared">Opšta</span>
+            </span>
+            <div class="document-actions">
+                <a href="${doc.file_url}" target="_blank" class="btn btn-icon btn-small" title="Otvori">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+        </div>
+    `;
 }
 
 // ===== QR CODE =====
@@ -1332,6 +1437,15 @@ function saveEquipment(event) {
     const serialNumber = document.getElementById('eqFormSerialNumber').value.trim() || null;
     const ip = document.getElementById('eqFormIP').value.trim();
     const mac = document.getElementById('eqFormMAC').value.trim();
+
+    // Validate that type matches sub-location
+    if (subLocation) {
+        const validTypes = SUB_LOCATION_EQUIPMENT_TYPES[subLocation];
+        if (!validTypes || !validTypes.includes(type)) {
+            alert(`Tip opreme "${type}" nije dozvoljen za pod-lokaciju "${subLocation}".\n\nDozvoljeni tipovi za ${subLocation}: ${validTypes ? validTypes.join(', ') : 'nepoznato'}`);
+            return;
+        }
+    }
     const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
     const y = document.getElementById('eqFormY').value ? parseInt(document.getElementById('eqFormY').value) : null;
     const z = document.getElementById('eqFormZ').value ? parseInt(document.getElementById('eqFormZ').value) : null;
@@ -2351,6 +2465,31 @@ function populateEquipmentTypes() {
         filterSelect.innerHTML = '<option value="">Svi tipovi</option>' +
             combinedTypes.map(type => `<option value="${type}">${type}</option>`).join('');
     }
+}
+
+/**
+ * Update equipment type dropdown based on selected sub-location
+ */
+function updateEquipmentTypeOptions() {
+    const subLocationSelect = document.getElementById('eqFormSubLocation');
+    const typeSelect = document.getElementById('eqFormType');
+    const selectedSubLocation = subLocationSelect.value;
+
+    typeSelect.innerHTML = '';
+
+    if (!selectedSubLocation) {
+        typeSelect.innerHTML = '<option value="">-- Prvo izaberite pod-lokaciju --</option>';
+        typeSelect.disabled = true;
+        return;
+    }
+
+    const validTypes = SUB_LOCATION_EQUIPMENT_TYPES[selectedSubLocation] || [];
+    typeSelect.innerHTML = '<option value="">-- Izaberite tip opreme --</option>';
+    validTypes.forEach(type => {
+        typeSelect.innerHTML += `<option value="${type}">${type}</option>`;
+    });
+
+    typeSelect.disabled = false;
 }
 
 function setDontShowWelcome(value) {

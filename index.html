@@ -281,9 +281,39 @@
                         </div>
 
                         <div class="equipment-section">
-                            <h3><i class="fas fa-tools"></i> Oprema na Lokaciji</h3>
-                            <div id="equipmentGrid" class="equipment-grid">
-                                <p class="no-data">Nema opreme na ovoj lokaciji.</p>
+                            <div class="sub-location-tabs">
+                                <button class="tab-btn active" onclick="showSubLocationTab('Gentri', event)">
+                                    <i class="fas fa-tower-broadcast"></i> Gentri
+                                    <span class="count" id="gentriCount">0</span>
+                                </button>
+                                <button class="tab-btn" onclick="showSubLocationTab('Ormar', event)">
+                                    <i class="fas fa-server"></i> Ormar
+                                    <span class="count" id="ormarCount">0</span>
+                                </button>
+                            </div>
+
+                            <div id="gentriSection" class="sub-location-section active">
+                                <div class="section-header">
+                                    <h3><i class="fas fa-tower-broadcast"></i> Gentri Oprema</h3>
+                                    <button class="btn btn-primary" onclick="showAddEquipmentModal('Gentri')">
+                                        <i class="fas fa-plus"></i> Dodaj u Gentri
+                                    </button>
+                                </div>
+                                <div id="equipmentGentriGrid" class="equipment-grid">
+                                    <p class="no-data">Nema opreme u Gentri pod-lokaciji.</p>
+                                </div>
+                            </div>
+
+                            <div id="ormarSection" class="sub-location-section">
+                                <div class="section-header">
+                                    <h3><i class="fas fa-server"></i> Ormar Oprema</h3>
+                                    <button class="btn btn-primary" onclick="showAddEquipmentModal('Ormar')">
+                                        <i class="fas fa-plus"></i> Dodaj u Ormar
+                                    </button>
+                                </div>
+                                <div id="equipmentOrmarGrid" class="equipment-grid">
+                                    <p class="no-data">Nema opreme u Ormar pod-lokaciji.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -597,29 +627,30 @@
                 <input type="hidden" id="equipmentLocationId">
 
                 <div class="form-section">
-                    <h4>Osnovne Informacije</h4>
+                    <h4>Pod-lokacija i Tip</h4>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="eqFormType">Tip Opreme *</label>
-                            <input type="text" id="eqFormType" list="equipmentTypesList" required placeholder="Izaberi ili unesi tip...">
-                            <datalist id="equipmentTypesList">
-                                <option value="VDX">
-                                <option value="VRX">
-                                <option value="Antena">
-                                <option value="Switch">
-                                <option value="TRC">
-                                <option value="TRM">
-                                <option value="intel">
-                                <option value="jetson">
-                                <option value="Wi-FI">
-                            </datalist>
+                            <label for="eqFormSubLocation">
+                                <i class="fas fa-building"></i> Pod-lokacija *
+                            </label>
+                            <select id="eqFormSubLocation" required onchange="updateEquipmentTypeOptions()">
+                                <option value="">-- Izaberite pod-lokaciju --</option>
+                                <option value="Gentri">Gentri</option>
+                                <option value="Ormar">Ormar</option>
+                            </select>
                         </div>
+                        <div class="form-group">
+                            <label for="eqFormType">Tip Opreme *</label>
+                            <select id="eqFormType" required disabled>
+                                <option value="">-- Prvo izaberite pod-lokaciju --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="eqFormInventory">Inventarski Broj *</label>
                             <input type="text" id="eqFormInventory" required placeholder="INV-001">
                         </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group">
                             <label for="eqFormStatus">Status Opreme</label>
                             <select id="eqFormStatus">
@@ -627,16 +658,6 @@
                                 <option value="Na servisu">Na servisu</option>
                                 <option value="Neispravna">Neispravna</option>
                                 <option value="Povučena">Povučena</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="eqFormSubLocation">
-                                <i class="fas fa-building"></i> Tip Ormarića
-                            </label>
-                            <select id="eqFormSubLocation">
-                                <option value="">-- Nije primenjivo --</option>
-                                <option value="Gentri">Gentri</option>
-                                <option value="Ormar">Ormar</option>
                             </select>
                         </div>
                     </div>
@@ -743,6 +764,19 @@
 
                 <div class="form-section">
                     <h4>PDF Dokumentacija</h4>
+                    <div class="form-group">
+                        <label>Tip Dokumentacije</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="docType" value="specific" checked>
+                                <span>Specifična (samo za ovu opremu)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="docType" value="shared">
+                                <span>Opšta (za svu opremu ovog tipa)</span>
+                            </label>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <div class="file-upload">
                             <input type="file" id="eqFormDocs" multiple accept=".pdf,application/pdf" onchange="previewDocuments(event)">

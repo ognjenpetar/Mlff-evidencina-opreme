@@ -45,6 +45,9 @@
                 <button class="btn btn-icon" onclick="toggleStructurePanel()" title="Struktura">
                     <i class="fas fa-sitemap"></i>
                 </button>
+                <button class="btn btn-icon" onclick="showAnalyticsView()" title="Analitika">
+                    <i class="fas fa-chart-line"></i>
+                </button>
                 <button class="btn btn-icon" onclick="exportData()" title="Napravi backup">
                     <i class="fas fa-download"></i>
                 </button>
@@ -561,6 +564,97 @@
                     </div>
                     <div id="equipmentReportContent" class="report-view-content"></div>
                 </div>
+
+                <!-- Analytics View -->
+                <div id="analyticsView" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-back" onclick="showDashboard()">
+                            <i class="fas fa-arrow-left"></i> Nazad
+                        </button>
+                        <h2><i class="fas fa-chart-line"></i> Analitika i Izveštaji</h2>
+                        <div class="view-actions">
+                            <button class="btn btn-secondary" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf"></i> PDF Izveštaj
+                            </button>
+                            <button class="btn btn-primary" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Excel Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="analytics-content">
+                        <!-- KPI Cards -->
+                        <div class="kpi-grid">
+                            <div class="kpi-card">
+                                <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Ukupno Opreme</span>
+                                    <span class="kpi-value" id="kpiTotalEquipment">0</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Aktivna</span>
+                                    <span class="kpi-value" id="kpiActiveEquipment">0</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon"><i class="fas fa-wrench"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Na Servisu</span>
+                                    <span class="kpi-value" id="kpiServiceEquipment">0</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon"><i class="fas fa-euro-sign"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Troškovi Održavanja (Godina)</span>
+                                    <span class="kpi-value" id="kpiMaintenanceCost">€0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts Grid -->
+                        <div class="charts-grid">
+                            <div class="chart-container">
+                                <h3><i class="fas fa-chart-pie"></i> Status Opreme</h3>
+                                <canvas id="statusPieChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3><i class="fas fa-chart-bar"></i> Oprema po Tipu</h3>
+                                <canvas id="typeBarChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3><i class="fas fa-chart-line"></i> Troškovi Održavanja (12 Mjeseci)</h3>
+                                <canvas id="costTrendChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3><i class="fas fa-calendar-alt"></i> Starost Opreme</h3>
+                                <canvas id="ageDistributionChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Top Costly Equipment Table -->
+                        <div class="analytics-table">
+                            <h3><i class="fas fa-trophy"></i> Top 10 Najskupljih Opreme (Održavanje)</h3>
+                            <table id="costlyEquipmentTable" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Inv. Broj</th>
+                                        <th>Tip</th>
+                                        <th>Lokacija</th>
+                                        <th>Servisi</th>
+                                        <th>Ukupni Troškovi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="costlyEquipmentTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -1041,7 +1135,14 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/supabase-service.js"></script>
 
+    <!-- Analytics & Reporting Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
     <!-- Application Scripts -->
+    <script src="js/analytics.js"></script>
     <script src="js/router.js"></script>
     <script src="js/app.js"></script>
 </body>

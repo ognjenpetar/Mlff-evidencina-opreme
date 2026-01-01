@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize router routes
     initializeRouter();
+
+    // Initialize maintenance notifications
+    initMaintenanceNotifications();
 });
 
 function initializeRouter() {
@@ -2681,4 +2684,278 @@ function initializeMap() {
     setTimeout(() => {
         mapInstance.invalidateSize();
     }, 100);
+}
+
+// ===== PREVENTIVE MAINTENANCE TRACKER =====
+
+let maintenanceCheckInterval = null;
+
+/**
+ * Initialize maintenance notifications
+ */
+function initMaintenanceNotifications() {
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+
+    // Check immediately on load
+    checkUpcomingMaintenance();
+
+    // Check every 6 hours
+    maintenanceCheckInterval = setInterval(() => {
+        checkUpcomingMaintenance();
+    }, 6 * 60 * 60 * 1000);
+}
+
+/**
+ * Check for upcoming maintenance and show notifications
+ */
+async function checkUpcomingMaintenance() {
+    try {
+        const { data, error } = await supabase.rpc('get_upcoming_maintenance');
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            // Update dashboard widget
+            renderMaintenanceWidget(data);
+
+            // Show browser notifications for urgent items (< 7 days)
+            const urgentItems = data.filter(item => item.days_until_service <= 7);
+
+            urgentItems.forEach(item => {
+                showMaintenanceNotification(item);
+            });
+
+            // Update notification badge
+            updateMaintenanceBadge(urgentItems.length);
+        } else {
+            // Hide widget if no upcoming maintenance
+            const widget = document.getElementById('maintenanceWidget');
+            if (widget) widget.style.display = 'none';
+        }
+
+    } catch (error) {
+        console.error('Error checking maintenance:', error);
+    }
+}
+
+/**
+ * Render maintenance widget on dashboard
+ */
+function renderMaintenanceWidget(items) {
+    // Find or create widget container
+    let widget = document.getElementById('maintenanceWidget');
+    if (!widget) {
+        widget = document.createElement('div');
+        widget.id = 'maintenanceWidget';
+        widget.className = 'maintenance-widget';
+
+        // Insert after dashboard stats
+        const dashboardStats = document.querySelector('.dashboard-stats');
+        if (dashboardStats) {
+            dashboardStats.insertAdjacentElement('afterend', widget);
+        }
+    }
+
+    widget.style.display = 'block';
+
+    const urgentItems = items.filter(item => item.days_until_service <= 7);
+    const upcomingItems = items.filter(item => item.days_until_service > 7);
+
+    widget.innerHTML = `
+        <div class="maintenance-widget-header">
+            <h3><i class="fas fa-calendar-check"></i> Predstojeće Održavanje</h3>
+            <span class="maintenance-count">${items.length} predstojećih</span>
+        </div>
+        <div class="maintenance-widget-content">
+            ${urgentItems.length > 0 ? `
+                <div class="maintenance-section urgent">
+                    <h4><i class="fas fa-exclamation-triangle"></i> HITNO (< 7 dana)</h4>
+                    <ul class="maintenance-list">
+                        ${urgentItems.map(item => `
+                            <li class="maintenance-item">
+                                <div class="maintenance-info">
+                                    <span class="maintenance-equipment">${item.type} - ${item.inventory_number}</span>
+                                    <span class="maintenance-location">${item.location_name}</span>
+                                </div>
+                                <div class="maintenance-date ${item.days_until_service <= 3 ? 'critical' : ''}">
+                                    <i class="fas fa-clock"></i>
+                                    ${item.days_until_service} ${item.days_until_service === 1 ? 'dan' : 'dana'}
+                                    <br>
+                                    <small>${new Date(item.next_service_date).toLocaleDateString('sr-RS')}</small>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            ${upcomingItems.length > 0 ? `
+                <div class="maintenance-section">
+                    <h4><i class="fas fa-calendar"></i> Planirano (7-30 dana)</h4>
+                    <ul class="maintenance-list">
+                        ${upcomingItems.slice(0, 5).map(item => `
+                            <li class="maintenance-item">
+                                <div class="maintenance-info">
+                                    <span class="maintenance-equipment">${item.type} - ${item.inventory_number}</span>
+                                    <span class="maintenance-location">${item.location_name}</span>
+                                </div>
+                                <div class="maintenance-date">
+                                    <i class="fas fa-clock"></i>
+                                    ${item.days_until_service} dana
+                                    <br>
+                                    <small>${new Date(item.next_service_date).toLocaleDateString('sr-RS')}</small>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                    ${upcomingItems.length > 5 ? `
+                        <p class="maintenance-more">+${upcomingItems.length - 5} još...</p>
+                    ` : ''}
+                </div>
+            ` : ''}
+        </div>
+        <div class="maintenance-widget-footer">
+            <button class="btn btn-small btn-primary" onclick="showMaintenanceScheduleModal()">
+                <i class="fas fa-list"></i> Prikaži Sve
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * Show browser notification for maintenance reminder
+ */
+function showMaintenanceNotification(item) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        // Check if already notified today (localStorage)
+        const notifKey = `notif_${item.equipment_id}_${item.next_service_date}`;
+        const lastNotif = localStorage.getItem(notifKey);
+        const today = new Date().toDateString();
+
+        if (lastNotif === today) return; // Already notified today
+
+        const notification = new Notification('MLFF Održavanje Podsetnik', {
+            body: `${item.type} (${item.inventory_number}) - Održavanje za ${item.days_until_service} ${item.days_until_service === 1 ? 'dan' : 'dana'}`,
+            icon: '/images/mlff-logo.svg',
+            badge: '/images/mlff-logo.svg',
+            tag: notifKey,
+            requireInteraction: item.days_until_service <= 3 // Persistent for critical
+        });
+
+        notification.onclick = function() {
+            window.focus();
+            // Navigate to equipment detail
+            router.navigate(`/equipment/${item.equipment_id}`);
+            this.close();
+        };
+
+        // Save notification timestamp
+        localStorage.setItem(notifKey, today);
+    }
+}
+
+/**
+ * Update notification badge count
+ */
+function updateMaintenanceBadge(count) {
+    let badge = document.getElementById('maintenanceBadge');
+
+    if (count > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.id = 'maintenanceBadge';
+            badge.className = 'notification-badge';
+
+            // Add to sidebar dashboard link
+            const dashboardLink = document.querySelector('.sidebar nav ul li:first-child a');
+            if (dashboardLink) {
+                dashboardLink.style.position = 'relative';
+                dashboardLink.appendChild(badge);
+            }
+        }
+        badge.textContent = count;
+        badge.style.display = 'flex';
+    } else if (badge) {
+        badge.style.display = 'none';
+    }
+}
+
+/**
+ * Show full maintenance schedule modal
+ */
+async function showMaintenanceScheduleModal() {
+    const { data, error } = await supabase.rpc('get_upcoming_maintenance');
+
+    if (error) {
+        console.error('Error fetching maintenance schedule:', error);
+        return;
+    }
+
+    // Create modal if doesn't exist
+    let modal = document.getElementById('maintenanceScheduleModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'maintenanceScheduleModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-alt"></i> Raspored Održavanja (30 Dana)</h3>
+                <button class="btn btn-icon" onclick="closeModal('maintenanceScheduleModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Inv. Broj</th>
+                            <th>Tip</th>
+                            <th>Lokacija</th>
+                            <th>Sledeći Servis</th>
+                            <th>Preostalo Dana</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(item => `
+                            <tr class="${item.days_until_service <= 7 ? 'urgent-row' : ''}">
+                                <td>
+                                    <a href="#" onclick="router.navigate('/equipment/${item.equipment_id}'); closeModal('maintenanceScheduleModal'); return false;">
+                                        ${item.inventory_number}
+                                    </a>
+                                </td>
+                                <td>${item.type}</td>
+                                <td>${item.location_name}</td>
+                                <td>${new Date(item.next_service_date).toLocaleDateString('sr-RS')}</td>
+                                <td>
+                                    <span class="days-badge ${item.days_until_service <= 3 ? 'critical' : item.days_until_service <= 7 ? 'warning' : ''}">
+                                        ${item.days_until_service} dana
+                                    </span>
+                                </td>
+                                <td>
+                                    ${item.days_until_service <= 3
+                                        ? '<span class="status-badge critical">KRITIČNO</span>'
+                                        : item.days_until_service <= 7
+                                            ? '<span class="status-badge warning">HITNO</span>'
+                                            : '<span class="status-badge normal">Planirano</span>'
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('maintenanceScheduleModal')">Zatvori</button>
+            </div>
+        </div>
+    `;
+
+    openModal('maintenanceScheduleModal');
 }

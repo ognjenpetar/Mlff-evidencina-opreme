@@ -47,7 +47,7 @@ export default defineConfig({
         }
 
         // Copy all JS files
-        const jsFiles = ['supabase-config.js', 'supabase-service.js', 'router.js', 'app.js'];
+        const jsFiles = ['supabase-config.js', 'supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
         jsFiles.forEach(file => {
           try {
             copyFileSync(join(jsFolderSrc, file), join(jsFolderDist, file));

@@ -141,9 +141,21 @@ function loadData() {
 
 // Save data to localStorage
 function saveData() {
-    appData.lastModified = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    updateDataStatus();
+    try {
+        appData.lastModified = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+        updateDataStatus();
+    } catch (error) {
+        console.error('❌ Error saving data to LocalStorage:', error);
+
+        if (error.name === 'QuotaExceededError') {
+            showToast('⚠️ LocalStorage memorija je puna! Koristite Supabase za skladištenje.', 'error');
+        } else {
+            showToast('Greška pri čuvanju podataka: ' + error.message, 'error');
+        }
+
+        throw error; // Re-throw so caller can handle
+    }
 }
 
 // Generate unique ID
@@ -1240,48 +1252,109 @@ function editCurrentLocation() {
     editLocation(currentLocationId);
 }
 
-function saveLocation(event) {
+async function saveLocation(event) {
     event.preventDefault();
 
-    const id = document.getElementById('locationId').value;
-    const name = document.getElementById('locName').value.trim();
-    const latitude = document.getElementById('locLat').value.trim();
-    const longitude = document.getElementById('locLng').value.trim();
-    const description = document.getElementById('locDescription').value.trim();
+    try {
+        const id = document.getElementById('locationId').value;
+        const name = document.getElementById('locName').value.trim();
+        const latitude = document.getElementById('locLat').value.trim();
+        const longitude = document.getElementById('locLng').value.trim();
+        const description = document.getElementById('locDescription').value.trim();
+        const photoInput = document.getElementById('locPhoto');
 
-    const photoInput = document.getElementById('locPhoto');
-    let photoPromise = Promise.resolve(null);
+        // Validate required fields
+        if (!name) {
+            showToast('Unesite naziv lokacije', 'warning');
+            return;
+        }
 
-    if (photoInput.files.length > 0) {
-        photoPromise = fileToBase64(photoInput.files[0]);
-    }
+        // Show loading state
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Čuvanje...';
 
-    photoPromise.then(photo => {
+        let photoUrl = null;
+
+        // Handle photo upload if file selected
+        if (photoInput.files.length > 0) {
+            const file = photoInput.files[0];
+
+            // Validate photo
+            const validation = validatePhoto(file);
+            if (!validation.valid) {
+                showToast(validation.error, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+
+            // Upload to Supabase Storage
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploadujem fotografiju...';
+
+            try {
+                const locationId = id || generateId();
+                photoUrl = await SupabaseService.uploadPhoto('location', locationId, file);
+                console.log('✅ Photo uploaded:', photoUrl);
+            } catch (uploadError) {
+                console.error('❌ Error uploading photo:', uploadError);
+                showToast('Greška pri uploadu fotografije: ' + uploadError.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+        }
+
+        // Save location
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Snimam u bazu...';
+
         if (id) {
+            // Update existing location
             const location = appData.locations.find(l => l.id === id);
             if (location) {
                 location.name = name;
                 location.latitude = latitude;
                 location.longitude = longitude;
                 location.description = description;
-                if (photo) location.photo = photo;
+                if (photoUrl) location.photo = photoUrl;
+                location.updatedAt = new Date().toISOString();
+
+                // Update in Supabase
+                await SupabaseService.updateLocation(id, location);
+                console.log('✅ Location updated in Supabase');
             }
         } else {
+            // Create new location
             const newLocation = {
                 id: generateId(),
                 name,
                 latitude,
                 longitude,
                 description,
-                photo,
+                photo: photoUrl,
                 equipment: [],
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             };
+
+            // Save to Supabase
+            await SupabaseService.addLocation(newLocation);
+            console.log('✅ Location saved to Supabase');
+
+            // Save to LocalStorage for offline access
             appData.locations.push(newLocation);
         }
 
         saveData();
+
+        // Reset form and close modal
+        document.getElementById('locationForm').reset();
+        const preview = document.getElementById('locPhotoPreview');
+        if (preview) preview.innerHTML = '';
         closeModal('locationModal');
+
+        // Reload views
         renderDashboard();
         renderStructureTree();
         updateLocationFilter();
@@ -1289,7 +1362,25 @@ function saveLocation(event) {
         if (currentLocationId && document.getElementById('locationDetailView').classList.contains('active')) {
             renderLocationDetail();
         }
-    });
+
+        // Show success message
+        showToast('✅ Lokacija uspešno sačuvana!', 'success');
+
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+
+    } catch (error) {
+        console.error('❌ Error saving location:', error);
+        showToast('Greška pri čuvanju lokacije: ' + error.message, 'error');
+
+        // Reset button
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Sačuvaj';
+        }
+    }
 }
 
 function confirmDeleteLocation(locationId) {
@@ -1415,96 +1506,133 @@ function removeNewDoc(event, index) {
     }
 }
 
-function saveEquipment(event) {
+async function saveEquipment(event) {
     event.preventDefault();
 
-    const id = document.getElementById('equipmentId').value;
-    const locationId = document.getElementById('equipmentLocationId').value;
-    const location = appData.locations.find(l => l.id === locationId);
-    if (!location) return;
-
-    if (!location.equipment) location.equipment = [];
-
-    const type = document.getElementById('eqFormType').value.trim();
-
-    // Save custom type if it's new
-    if (type && !DEFAULT_EQUIPMENT_TYPES.includes(type)) {
-        saveCustomType(type);
-    }
-
-    const inventoryNumber = document.getElementById('eqFormInventory').value.trim();
-    const status = document.getElementById('eqFormStatus').value;
-    const subLocation = document.getElementById('eqFormSubLocation').value || null;
-    const manufacturer = document.getElementById('eqFormManufacturer').value.trim() || null;
-    const model = document.getElementById('eqFormModel').value.trim() || null;
-    const serialNumber = document.getElementById('eqFormSerialNumber').value.trim() || null;
-    const ip = document.getElementById('eqFormIP').value.trim();
-    const mac = document.getElementById('eqFormMAC').value.trim();
-
-    // Validate that type matches sub-location
-    if (subLocation) {
-        const validTypes = SUB_LOCATION_EQUIPMENT_TYPES[subLocation];
-        if (!validTypes || !validTypes.includes(type)) {
-            alert(`Tip opreme "${type}" nije dozvoljen za pod-lokaciju "${subLocation}".\n\nDozvoljeni tipovi za ${subLocation}: ${validTypes ? validTypes.join(', ') : 'nepoznato'}`);
-            return;
-        }
-    }
-    const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
-    const y = document.getElementById('eqFormY').value ? parseInt(document.getElementById('eqFormY').value) : null;
-    const z = document.getElementById('eqFormZ').value ? parseInt(document.getElementById('eqFormZ').value) : null;
-    const installDate = document.getElementById('eqFormInstallDate').value;
-    const warrantyDate = document.getElementById('eqFormWarranty').value;
-    const installer = document.getElementById('eqFormInstaller').value.trim();
-    const tester = document.getElementById('eqFormTester').value.trim();
-    const notes = document.getElementById('eqFormNotes').value.trim();
-
-    const photoInput = document.getElementById('eqFormPhoto');
-    let photoPromise = Promise.resolve(null);
-
-    if (photoInput.files.length > 0) {
-        photoPromise = fileToBase64(photoInput.files[0]);
-    }
-
-    // Collect existing documents that should be kept (not marked for removal)
-    const existingDocsToKeep = [];
-    if (id) {
+    try {
+        const id = document.getElementById('equipmentId').value;
+        const locationId = document.getElementById('equipmentLocationId').value;
         const location = appData.locations.find(l => l.id === locationId);
-        const equipment = (location?.equipment || []).find(e => e.id === id);
-        if (equipment && equipment.documents) {
-            document.querySelectorAll('.existing-doc').forEach(el => {
-                if (!el.classList.contains('marked-for-removal')) {
-                    const index = parseInt(el.dataset.docIndex);
-                    if (equipment.documents[index]) {
-                        existingDocsToKeep.push(equipment.documents[index]);
+        if (!location) return;
+
+        if (!location.equipment) location.equipment = [];
+
+        const type = document.getElementById('eqFormType').value.trim();
+
+        // Save custom type if it's new
+        if (type && !DEFAULT_EQUIPMENT_TYPES.includes(type)) {
+            saveCustomType(type);
+        }
+
+        const inventoryNumber = document.getElementById('eqFormInventory').value.trim();
+        const status = document.getElementById('eqFormStatus').value;
+        const subLocation = document.getElementById('eqFormSubLocation').value || null;
+        const manufacturer = document.getElementById('eqFormManufacturer').value.trim() || null;
+        const model = document.getElementById('eqFormModel').value.trim() || null;
+        const serialNumber = document.getElementById('eqFormSerialNumber').value.trim() || null;
+        const ip = document.getElementById('eqFormIP').value.trim();
+        const mac = document.getElementById('eqFormMAC').value.trim();
+
+        // Validate that type matches sub-location
+        if (subLocation) {
+            const validTypes = SUB_LOCATION_EQUIPMENT_TYPES[subLocation];
+            if (!validTypes || !validTypes.includes(type)) {
+                showToast(`Tip opreme "${type}" nije dozvoljen za pod-lokaciju "${subLocation}".\n\nDozvoljeni tipovi za ${subLocation}: ${validTypes ? validTypes.join(', ') : 'nepoznato'}`, 'error');
+                return;
+            }
+        }
+        const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
+        const y = document.getElementById('eqFormY').value ? parseInt(document.getElementById('eqFormY').value) : null;
+        const z = document.getElementById('eqFormZ').value ? parseInt(document.getElementById('eqFormZ').value) : null;
+        const installDate = document.getElementById('eqFormInstallDate').value;
+        const warrantyDate = document.getElementById('eqFormWarranty').value;
+        const installer = document.getElementById('eqFormInstaller').value.trim();
+        const tester = document.getElementById('eqFormTester').value.trim();
+        const notes = document.getElementById('eqFormNotes').value.trim();
+
+        // Show loading state
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Čuvanje...';
+
+        // Handle photo upload
+        const photoInput = document.getElementById('eqFormPhoto');
+        let photoUrl = null;
+
+        if (photoInput.files.length > 0) {
+            const file = photoInput.files[0];
+
+            // Validate photo
+            const validation = validatePhoto(file);
+            if (!validation.valid) {
+                showToast(validation.error, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+
+            // Upload to Supabase Storage
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploadujem fotografiju...';
+
+            try {
+                const equipmentId = id || generateId();
+                photoUrl = await SupabaseService.uploadPhoto('equipment', equipmentId, file);
+                console.log('✅ Photo uploaded:', photoUrl);
+            } catch (uploadError) {
+                console.error('❌ Error uploading photo:', uploadError);
+                showToast('Greška pri uploadu fotografije: ' + uploadError.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+        }
+
+        // Collect existing documents that should be kept (not marked for removal)
+        const existingDocsToKeep = [];
+        if (id) {
+            const location = appData.locations.find(l => l.id === locationId);
+            const equipment = (location?.equipment || []).find(e => e.id === id);
+            if (equipment && equipment.documents) {
+                document.querySelectorAll('.existing-doc').forEach(el => {
+                    if (!el.classList.contains('marked-for-removal')) {
+                        const index = parseInt(el.dataset.docIndex);
+                        if (equipment.documents[index]) {
+                            existingDocsToKeep.push(equipment.documents[index]);
+                        }
                     }
-                }
+                });
+            }
+        }
+
+        // Handle document uploads (still using Base64 for documents - only photos use Supabase Storage)
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesiranje dokumenata...';
+        const docsInput = document.getElementById('eqFormDocs');
+        let newDocs = [];
+
+        if (docsInput && docsInput.files.length > 0) {
+            // Validate files before processing
+            const validationErrors = validateFiles(docsInput.files);
+            if (validationErrors.length > 0) {
+                showToast('Greške pri upload-u:\n' + validationErrors.join('\n'), 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                return;
+            }
+
+            const docPromises = Array.from(docsInput.files).map(file => {
+                return fileToBase64(file).then(data => ({
+                    name: file.name,
+                    type: file.type,
+                    data
+                }));
             });
-        }
-    }
-
-    // Handle document uploads
-    const docsInput = document.getElementById('eqFormDocs');
-    let docsPromise = Promise.resolve([]);
-
-    if (docsInput && docsInput.files.length > 0) {
-        // Validate files before processing
-        const validationErrors = validateFiles(docsInput.files);
-        if (validationErrors.length > 0) {
-            alert('Greške pri upload-u:\n' + validationErrors.join('\n'));
-            return;
+            newDocs = await Promise.all(docPromises);
         }
 
-        const docPromises = Array.from(docsInput.files).map(file => {
-            return fileToBase64(file).then(data => ({
-                name: file.name,
-                type: file.type,
-                data
-            }));
-        });
-        docsPromise = Promise.all(docPromises);
-    }
+        // Save equipment
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Snimam u bazu...';
 
-    Promise.all([photoPromise, docsPromise]).then(([photo, newDocs]) => {
         if (id) {
             const equipment = location.equipment.find(e => e.id === id);
             if (equipment) {
@@ -1549,7 +1677,8 @@ function saveEquipment(event) {
                 equipment.installer = installer;
                 equipment.tester = tester;
                 equipment.notes = notes;
-                if (photo) equipment.photo = photo;
+                if (photoUrl) equipment.photo = photoUrl;
+                equipment.updatedAt = new Date().toISOString();
 
                 // Update documents: combine kept existing + new documents
                 equipment.documents = [...existingDocsToKeep, ...newDocs];
@@ -1572,6 +1701,10 @@ function saveEquipment(event) {
                         field_changes: fieldChanges.length > 0 ? fieldChanges : undefined
                     });
                 }
+
+                // Update in Supabase
+                await SupabaseService.updateEquipment(id, equipment);
+                console.log('✅ Equipment updated in Supabase');
             }
         } else {
             const newEquipment = {
@@ -1593,7 +1726,7 @@ function saveEquipment(event) {
                 installer,
                 tester,
                 notes,
-                photo,
+                photo: photoUrl,
                 documents: newDocs.length > 0 ? newDocs : [],
                 maintenance: [],
                 history: [{
@@ -1601,20 +1734,52 @@ function saveEquipment(event) {
                     action: 'Oprema kreirana',
                     details: `${type} - ${inventoryNumber}`
                 }],
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             };
             location.equipment.push(newEquipment);
+
+            // Save to Supabase
+            await SupabaseService.addEquipment(newEquipment, locationId);
+            console.log('✅ Equipment saved to Supabase');
         }
 
         saveData();
+
+        // Reset form and close modal
+        document.getElementById('equipmentForm').reset();
+        const preview = document.getElementById('eqPhotoPreview');
+        if (preview) preview.innerHTML = '';
+        const docsPreview = document.getElementById('eqDocsPreview');
+        if (docsPreview) docsPreview.innerHTML = '';
         closeModal('equipmentModal');
+
+        // Reload views
         renderLocationDetail();
         renderStructureTree();
 
         if (currentEquipmentId && document.getElementById('equipmentDetailView').classList.contains('active')) {
             renderEquipmentDetail();
         }
-    });
+
+        // Show success message
+        showToast('✅ Oprema uspešno sačuvana!', 'success');
+
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+
+    } catch (error) {
+        console.error('❌ Error saving equipment:', error);
+        showToast('Greška pri čuvanju opreme: ' + error.message, 'error');
+
+        // Reset button
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Sačuvaj';
+        }
+    }
 }
 
 function confirmDeleteEquipment(equipmentId) {
@@ -2265,6 +2430,63 @@ function fileToBase64(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+}
+
+/**
+ * Validate photo file (type and size)
+ * @param {File} file - Photo file to validate
+ * @returns {Object} { valid: boolean, error: string }
+ */
+function validatePhoto(file) {
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+    if (!file) {
+        return { valid: false, error: 'Niste odabrali fotografiju' };
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+        return { valid: false, error: 'Dozvoljeni formati: JPG, PNG, GIF, WebP' };
+    }
+
+    if (file.size > MAX_SIZE) {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+        return { valid: false, error: `Fotografija je prevelika (${sizeMB}MB). Maksimum: 5MB` };
+    }
+
+    return { valid: true, error: null };
+}
+
+/**
+ * Show toast notification
+ * @param {string} message - Message to display
+ * @param {string} type - 'success', 'error', 'warning', 'info'
+ */
+function showToast(message, type = 'info') {
+    // Create toast container if doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.add('toast-fade-out');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 // File validation functions

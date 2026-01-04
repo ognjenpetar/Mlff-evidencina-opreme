@@ -67,7 +67,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 // ==========================================
 
 // Make supabase client available globally
-window.supabaseClient = supabase;
+window.supabase = supabase;  // Used by supabase-service.js
+window.supabaseClient = supabase;  // Backward compatibility
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

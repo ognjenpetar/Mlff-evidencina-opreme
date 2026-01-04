@@ -2784,6 +2784,9 @@ function showBackupToast() {
 
 function hideBackupToast() {
     document.getElementById('backupToast').classList.remove('active');
+    // Update lastBackup timestamp to prevent showing again immediately
+    appData.lastBackup = new Date().toISOString();
+    saveData();
 }
 
 // Placeholder functions for stat card clicks

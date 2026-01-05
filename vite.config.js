@@ -19,8 +19,7 @@ export default defineConfig(({ mode }) => {
       // Preserve file structure
       rollupOptions: {
         input: {
-          main: './index.html',
-          migration: './migration.html'
+          main: './index.html'
         }
       }
     },
@@ -61,12 +60,12 @@ export default defineConfig(({ mode }) => {
                 // Replace import.meta.env.VITE_SUPABASE_URL with actual value
                 content = content.replace(
                   /import\.meta\.env\.VITE_SUPABASE_URL/g,
-                  `'${env.VITE_SUPABASE_URL || ''}'`
+                  `'${(env.VITE_SUPABASE_URL || '').trim()}'`
                 );
                 // Replace import.meta.env.VITE_SUPABASE_ANON_KEY with actual value
                 content = content.replace(
                   /import\.meta\.env\.VITE_SUPABASE_ANON_KEY/g,
-                  `'${env.VITE_SUPABASE_ANON_KEY || ''}'`
+                  `'${(env.VITE_SUPABASE_ANON_KEY || '').trim()}'`
                 );
 
                 console.log('🔧 Injected environment variables into supabase-config.js');

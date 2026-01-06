@@ -37,6 +37,15 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
+      - name: Debug - Check built files
+        run: |
+          echo "=== Checking dist/index.html script tags ==="
+          grep -c "<script" dist/index.html || echo "No script tags found!"
+          echo "=== Checking dist/js/ folder ==="
+          ls -la dist/js/ || echo "No dist/js folder!"
+          echo "=== Checking dist/ structure ==="
+          ls -la dist/
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

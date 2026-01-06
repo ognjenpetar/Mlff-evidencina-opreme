@@ -36,68 +36,29 @@ export default defineConfig(({ mode }) => {
     // Plugins
     plugins: [
       {
-        name: 'copy-assets',
+        name: 'inject-env-vars',
         closeBundle() {
-          // Copy JS files to dist/js folder after build
-          const jsFolderDist = join(process.cwd(), 'dist', 'js');
-          const jsFolderSrc = join(process.cwd(), 'js');
+          // Inject environment variables into supabase-config.js in dist folder (AFTER copy)
+          const distJsPath = join(process.cwd(), 'dist', 'js', 'supabase-config.js');
 
-          // Create dist/js folder if it doesn't exist
           try {
-            mkdirSync(jsFolderDist, { recursive: true });
-          } catch (e) {
-            // Folder already exists
-          }
+            let content = readFileSync(distJsPath, 'utf-8');
 
-          // Copy all JS files with env var replacement
-          const jsFiles = ['supabase-config.js', 'supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
-          jsFiles.forEach(file => {
-            try {
-              let content = readFileSync(join(jsFolderSrc, file), 'utf-8');
-
-              // Replace environment variables in supabase-config.js
-              if (file === 'supabase-config.js') {
-                // Replace import.meta.env.VITE_SUPABASE_URL with actual value
-                content = content.replace(
-                  /import\.meta\.env\.VITE_SUPABASE_URL/g,
-                  `'${(env.VITE_SUPABASE_URL || '').trim()}'`
-                );
-                // Replace import.meta.env.VITE_SUPABASE_ANON_KEY with actual value
-                content = content.replace(
-                  /import\.meta\.env\.VITE_SUPABASE_ANON_KEY/g,
-                  `'${(env.VITE_SUPABASE_ANON_KEY || '').trim()}'`
-                );
-
-                console.log('🔧 Injected environment variables into supabase-config.js');
-              }
-
-              writeFileSync(join(jsFolderDist, file), content, 'utf-8');
-              console.log(`✅ Copied ${file} to dist/js/`);
-            } catch (e) {
-              console.error(`❌ Failed to copy ${file}:`, e.message);
-            }
-          });
-
-          // Copy images folder to dist/images folder after build
-          const imagesFolderDist = join(process.cwd(), 'dist', 'images');
-          const imagesFolderSrc = join(process.cwd(), 'images');
-
-          // Create dist/images folder if it doesn't exist
-          try {
-            mkdirSync(imagesFolderDist, { recursive: true });
-          } catch (e) {
-            // Folder already exists
-          }
-
-          // Copy MLFF logo
-          try {
-            copyFileSync(
-              join(imagesFolderSrc, 'mlff-logo.svg'),
-              join(imagesFolderDist, 'mlff-logo.svg')
+            // Replace import.meta.env.VITE_SUPABASE_URL with actual value
+            content = content.replace(
+              /import\.meta\.env\.VITE_SUPABASE_URL/g,
+              `'${(env.VITE_SUPABASE_URL || '').trim()}'`
             );
-            console.log(`✅ Copied mlff-logo.svg to dist/images/`);
+            // Replace import.meta.env.VITE_SUPABASE_ANON_KEY with actual value
+            content = content.replace(
+              /import\.meta\.env\.VITE_SUPABASE_ANON_KEY/g,
+              `'${(env.VITE_SUPABASE_ANON_KEY || '').trim()}'`
+            );
+
+            writeFileSync(distJsPath, content, 'utf-8');
+            console.log('🔧 Injected environment variables into dist/js/supabase-config.js');
           } catch (e) {
-            console.error(`❌ Failed to copy mlff-logo.svg:`, e.message);
+            console.error(`❌ Failed to inject env vars:`, e.message);
           }
         }
       }

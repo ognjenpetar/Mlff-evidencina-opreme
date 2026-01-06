@@ -14,14 +14,8 @@ export default defineConfig(({ mode }) => {
     // Build configuration
     build: {
       outDir: 'dist',
-      assetsDir: 'assets',
-
-      // Preserve file structure
-      rollupOptions: {
-        input: {
-          main: './index.html'
-        }
-      }
+      assetsDir: 'assets'
+      // Removed rollupOptions.input - let Vite copy public/index.html without processing
     },
 
     // Server configuration for local development

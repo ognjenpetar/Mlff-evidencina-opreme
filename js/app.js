@@ -2783,10 +2783,23 @@ function showBackupToast() {
 }
 
 function hideBackupToast() {
-    document.getElementById('backupToast').classList.remove('active');
-    // Update lastBackup timestamp to prevent showing again immediately
-    appData.lastBackup = new Date().toISOString();
-    saveData();
+    const toastElement = document.getElementById('backupToast');
+    if (!toastElement) return;
+
+    toastElement.classList.remove('active');
+
+    // Set lastBackup to NOW to prevent immediate re-trigger
+    const now = new Date();
+    appData.lastBackup = now.toISOString();
+
+    // Save to both LocalStorage and Supabase
+    try {
+        saveData();
+        console.log('✅ Backup reminder dismissed until:', new Date(now.getTime() + (BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString());
+    } catch (error) {
+        console.error('❌ Failed to save backup reminder dismissal:', error);
+        // Even if save fails, keep toast hidden for this session
+    }
 }
 
 // Placeholder functions for stat card clicks

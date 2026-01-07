@@ -19,6 +19,19 @@
  */
 
 console.log('🔧 Loading supabase-config.js - Version 3.1.0 - BUILD 2026-01-07-13:00');
+console.log('📍 Script loaded from:', document.currentScript ? document.currentScript.src : 'unknown');
+console.trace('🔍 Load stack trace:');
+
+// Check if already loaded
+if (window.SUPABASE_CONFIG_LOADED) {
+    console.error('❌❌❌ DUPLICATE LOAD DETECTED! supabase-config.js is being loaded TWICE!');
+    console.error('First load was at:', window.SUPABASE_CONFIG_FIRST_LOAD);
+    console.error('Second load is NOW');
+    throw new Error('DUPLICATE LOAD: supabase-config.js loaded twice - preventing duplicate const declaration');
+}
+window.SUPABASE_CONFIG_LOADED = true;
+window.SUPABASE_CONFIG_FIRST_LOAD = new Date().toISOString();
+console.log('✅ First load of supabase-config.js');
 
 // ==========================================
 // CONFIGURATION

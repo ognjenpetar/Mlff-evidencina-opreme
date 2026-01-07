@@ -1,6 +1,6 @@
 /**
  * Supabase Configuration
- * Version: 3.0 (Supabase Edition)
+ * Version: 3.1.0 - BUILD 2026-01-07-13:00 (FIXED DUPLICATES)
  *
  * This file initializes the Supabase client for the MLFF Equipment Tracking application.
  *
@@ -17,6 +17,8 @@
  *   SUPABASE_URL: 'https://abcdefghijk.supabase.co'
  *   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
  */
+
+console.log('🔧 Loading supabase-config.js - Version 3.1.0 - BUILD 2026-01-07-13:00');
 
 // ==========================================
 // CONFIGURATION

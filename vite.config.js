@@ -30,6 +30,31 @@ export default defineConfig(({ mode }) => {
     // Plugins
     plugins: [
       {
+        name: 'copy-js-files',
+        closeBundle() {
+          // Copy JS files from root js/ to dist/js/
+          const jsFolderSrc = join(process.cwd(), 'js');
+          const jsFolderDist = join(process.cwd(), 'dist', 'js');
+
+          try {
+            // Create dist/js folder if it doesn't exist
+            mkdirSync(jsFolderDist, { recursive: true });
+
+            // Copy all JS files
+            const jsFiles = ['supabase-config.js', 'supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
+            jsFiles.forEach(file => {
+              const srcPath = join(jsFolderSrc, file);
+              const destPath = join(jsFolderDist, file);
+              copyFileSync(srcPath, destPath);
+            });
+
+            console.log('✅ Copied JS files to dist/js/');
+          } catch (e) {
+            console.error(`❌ Failed to copy JS files:`, e.message);
+          }
+        }
+      },
+      {
         name: 'inject-env-vars',
         closeBundle() {
           // Inject environment variables into supabase-config.js in dist folder (AFTER copy)

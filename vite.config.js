@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
             mkdirSync(jsFolderDist, { recursive: true });
 
             // Copy all JS files
-            const jsFiles = ['supabase-config.js', 'supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
+            const jsFiles = ['supabase-config-v2.js', 'supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
             jsFiles.forEach(file => {
               const srcPath = join(jsFolderSrc, file);
               const destPath = join(jsFolderDist, file);
@@ -57,8 +57,8 @@ export default defineConfig(({ mode }) => {
       {
         name: 'inject-env-vars',
         closeBundle() {
-          // Inject environment variables into supabase-config.js in dist folder (AFTER copy)
-          const distJsPath = join(process.cwd(), 'dist', 'js', 'supabase-config.js');
+          // Inject environment variables into supabase-config-v2.js in dist folder (AFTER copy)
+          const distJsPath = join(process.cwd(), 'dist', 'js', 'supabase-config-v2.js');
 
           try {
             let content = readFileSync(distJsPath, 'utf-8');
@@ -75,7 +75,7 @@ export default defineConfig(({ mode }) => {
             );
 
             writeFileSync(distJsPath, content, 'utf-8');
-            console.log('🔧 Injected environment variables into dist/js/supabase-config.js');
+            console.log('🔧 Injected environment variables into dist/js/supabase-config-v2.js');
           } catch (e) {
             console.error(`❌ Failed to inject env vars:`, e.message);
           }

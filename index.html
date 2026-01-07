@@ -1131,9 +1131,9 @@
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
-    <!-- Supabase Configuration and Services -->
-    <script src="/Mlff-evidencina-opreme/js/supabase-config-v2.js"></script>
-    <script src="/Mlff-evidencina-opreme/js/supabase-service.js"></script>
+    <!-- Main Application Entry Point (ES Module) -->
+    <!-- This initializes Supabase client and services -->
+    <script type="module" src="/src/main.js"></script>
 
     <!-- Analytics & Reporting Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
@@ -1141,7 +1141,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
 
-    <!-- Application Scripts -->
+    <!-- Application Scripts (Legacy Global Scope) -->
     <script src="/Mlff-evidencina-opreme/js/analytics.js"></script>
     <script src="/Mlff-evidencina-opreme/js/router.js"></script>
     <script src="/Mlff-evidencina-opreme/js/app.js"></script>

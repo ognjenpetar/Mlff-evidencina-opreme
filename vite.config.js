@@ -1,5 +1,5 @@
 import { defineConfig, loadEnv } from 'vite';
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { copyFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 // https://vitejs.dev/config/
@@ -14,8 +14,12 @@ export default defineConfig(({ mode }) => {
     // Build configuration
     build: {
       outDir: 'dist',
-      assetsDir: 'assets'
-      // Removed rollupOptions.input - let Vite copy public/index.html without processing
+      assetsDir: 'assets',
+      rollupOptions: {
+        input: {
+          main: join(process.cwd(), 'index.html')
+        }
+      }
     },
 
     // Server configuration for local development
@@ -30,9 +34,10 @@ export default defineConfig(({ mode }) => {
     // Plugins
     plugins: [
       {
-        name: 'copy-js-files',
+        name: 'copy-legacy-js-files',
         closeBundle() {
-          // Copy JS files from root js/ to dist/js/
+          // Copy non-module JS files from root js/ to dist/js/
+          // (analytics.js, router.js, app.js still use global scope)
           const jsFolderSrc = join(process.cwd(), 'js');
           const jsFolderDist = join(process.cwd(), 'dist', 'js');
 
@@ -40,44 +45,17 @@ export default defineConfig(({ mode }) => {
             // Create dist/js folder if it doesn't exist
             mkdirSync(jsFolderDist, { recursive: true });
 
-            // Copy all JS files
-            const jsFiles = ['supabase-config-v2.js', 'supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
+            // Copy legacy JS files (non-ES modules)
+            const jsFiles = ['analytics.js', 'router.js', 'app.js'];
             jsFiles.forEach(file => {
               const srcPath = join(jsFolderSrc, file);
               const destPath = join(jsFolderDist, file);
               copyFileSync(srcPath, destPath);
             });
 
-            console.log('✅ Copied JS files to dist/js/');
+            console.log('✅ Copied legacy JS files to dist/js/');
           } catch (e) {
-            console.error(`❌ Failed to copy JS files:`, e.message);
-          }
-        }
-      },
-      {
-        name: 'inject-env-vars',
-        closeBundle() {
-          // Inject environment variables into supabase-config-v2.js in dist folder (AFTER copy)
-          const distJsPath = join(process.cwd(), 'dist', 'js', 'supabase-config-v2.js');
-
-          try {
-            let content = readFileSync(distJsPath, 'utf-8');
-
-            // Replace import.meta.env.VITE_SUPABASE_URL with actual value
-            content = content.replace(
-              /import\.meta\.env\.VITE_SUPABASE_URL/g,
-              `'${(env.VITE_SUPABASE_URL || '').trim()}'`
-            );
-            // Replace import.meta.env.VITE_SUPABASE_ANON_KEY with actual value
-            content = content.replace(
-              /import\.meta\.env\.VITE_SUPABASE_ANON_KEY/g,
-              `'${(env.VITE_SUPABASE_ANON_KEY || '').trim()}'`
-            );
-
-            writeFileSync(distJsPath, content, 'utf-8');
-            console.log('🔧 Injected environment variables into dist/js/supabase-config-v2.js');
-          } catch (e) {
-            console.error(`❌ Failed to inject env vars:`, e.message);
+            console.error(`❌ Failed to copy legacy JS files:`, e.message);
           }
         }
       }

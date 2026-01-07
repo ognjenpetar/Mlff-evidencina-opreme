@@ -2798,6 +2798,45 @@ function hideBackupToast() {
         console.log('✅ Backup reminder dismissed until:', new Date(now.getTime() + (BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString());
     } catch (error) {
         console.error('❌ Failed to save backup reminder dismissal:', error);
+
+        // If LocalStorage is full, try to clear some space
+        if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+            console.log('💾 LocalStorage quota exceeded, attempting cleanup...');
+
+            try {
+                // Remove non-critical keys from LocalStorage
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    // Keep only our app data
+                    if (key !== STORAGE_KEY) {
+                        keysToRemove.push(key);
+                    }
+                }
+
+                keysToRemove.forEach(key => {
+                    try {
+                        localStorage.removeItem(key);
+                        console.log('🗑️ Removed:', key);
+                    } catch (e) {
+                        // Ignore errors removing individual keys
+                    }
+                });
+
+                // Try saving again
+                if (keysToRemove.length > 0) {
+                    try {
+                        saveData();
+                        console.log('✅ Backup reminder saved after cleanup');
+                    } catch (retryError) {
+                        console.error('❌ Still failed after cleanup:', retryError);
+                    }
+                }
+            } catch (cleanupError) {
+                console.error('❌ Cleanup failed:', cleanupError);
+            }
+        }
+
         // Even if save fails, keep toast hidden for this session
     }
 }

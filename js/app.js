@@ -1327,23 +1327,31 @@ async function saveLocation(event) {
         } else {
             // Create new location
             const newLocation = {
-                id: generateId(),
                 name,
                 latitude,
                 longitude,
                 description,
-                photo: photoUrl,
-                equipment: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                photoURL: photoUrl,  // Use photoURL for Supabase compatibility
+                address: address || null
             };
 
-            // Save to Supabase
-            await SupabaseService.addLocation(newLocation);
-            console.log('✅ Location saved to Supabase');
+            // Save to Supabase (Supabase will generate UUID automatically)
+            const newLocationId = await SupabaseService.createLocation(newLocation);
+            console.log('✅ Location saved to Supabase with ID:', newLocationId);
 
-            // Save to LocalStorage for offline access
-            appData.locations.push(newLocation);
+            // Add to local data with full structure
+            appData.locations.push({
+                id: newLocationId,
+                name,
+                latitude,
+                longitude,
+                description,
+                photo_url: photoUrl,
+                address: address || null,
+                equipment: [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
         }
 
         saveData();
@@ -2786,29 +2794,34 @@ function hideBackupToast() {
     const toastElement = document.getElementById('backupToast');
     if (!toastElement) return;
 
+    // IMMEDIATELY hide the toast (don't wait for save)
     toastElement.classList.remove('active');
+    toastElement.style.display = 'none';  // Force hide
 
     // Set lastBackup to NOW to prevent immediate re-trigger
     const now = new Date();
     appData.lastBackup = now.toISOString();
 
-    // Save to both LocalStorage and Supabase
+    // Try multiple save strategies
+    let saved = false;
+
+    // Strategy 1: Try normal save
     try {
         saveData();
         console.log('✅ Backup reminder dismissed until:', new Date(now.getTime() + (BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString());
+        saved = true;
     } catch (error) {
         console.error('❌ Failed to save backup reminder dismissal:', error);
 
-        // If LocalStorage is full, try to clear some space
+        // Strategy 2: If LocalStorage is full, clear non-essential data
         if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
-            console.log('💾 LocalStorage quota exceeded, attempting cleanup...');
+            console.log('💾 LocalStorage quota exceeded, attempting aggressive cleanup...');
 
             try {
-                // Remove non-critical keys from LocalStorage
+                // Clear ALL non-app keys
                 const keysToRemove = [];
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    // Keep only our app data
                     if (key !== STORAGE_KEY) {
                         keysToRemove.push(key);
                     }
@@ -2819,15 +2832,16 @@ function hideBackupToast() {
                         localStorage.removeItem(key);
                         console.log('🗑️ Removed:', key);
                     } catch (e) {
-                        // Ignore errors removing individual keys
+                        // Ignore errors
                     }
                 });
 
-                // Try saving again
+                // Try saving again after cleanup
                 if (keysToRemove.length > 0) {
                     try {
                         saveData();
                         console.log('✅ Backup reminder saved after cleanup');
+                        saved = true;
                     } catch (retryError) {
                         console.error('❌ Still failed after cleanup:', retryError);
                     }
@@ -2836,8 +2850,16 @@ function hideBackupToast() {
                 console.error('❌ Cleanup failed:', cleanupError);
             }
         }
+    }
 
-        // Even if save fails, keep toast hidden for this session
+    // Strategy 3: Use sessionStorage as fallback (lasts only for this session)
+    if (!saved) {
+        try {
+            sessionStorage.setItem('backupReminderDismissed', now.toISOString());
+            console.log('⚠️ Using sessionStorage as fallback (reminder will show again after browser restart)');
+        } catch (e) {
+            console.error('❌ Even sessionStorage failed:', e);
+        }
     }
 }
 

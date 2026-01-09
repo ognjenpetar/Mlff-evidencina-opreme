@@ -125,6 +125,15 @@ const SupabaseService = {
     },
 
     /**
+     * Add a new location (alias for createLocation for compatibility)
+     * @param {Object} data - Location data
+     * @returns {Promise<string>} New location UUID
+     */
+    async addLocation(data) {
+        return await this.createLocation(data);
+    },
+
+    /**
      * Delete a location (CASCADE deletes all equipment)
      * @param {string} id - Location UUID
      */

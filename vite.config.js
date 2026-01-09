@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
             mkdirSync(jsFolderDist, { recursive: true });
 
             // Copy legacy JS files (non-ES modules)
-            const jsFiles = ['analytics.js', 'router.js', 'app.js'];
+            const jsFiles = ['supabase-service.js', 'analytics.js', 'router.js', 'app.js'];
             jsFiles.forEach(file => {
               const srcPath = join(jsFolderSrc, file);
               const destPath = join(jsFolderDist, file);

@@ -1718,13 +1718,60 @@ async function saveEquipment(event) {
                     });
                 }
 
-                // Update in Supabase
-                await SupabaseService.updateEquipment(id, equipment);
+                // Update in Supabase - map field names to Supabase format
+                const updateData = {
+                    inventoryNumber: equipment.inventoryNumber,
+                    type: equipment.type,
+                    status: equipment.status,
+                    manufacturer: equipment.manufacturer,
+                    model: equipment.model,
+                    serialNumber: equipment.serial_number || equipment.serialNumber,
+                    ipAddress: equipment.ip || equipment.ipAddress,
+                    macAddress: equipment.mac || equipment.macAddress,
+                    xCoord: equipment.x,
+                    yCoord: equipment.y,
+                    zCoord: equipment.z,
+                    installationDate: equipment.installDate,
+                    warrantyExpiry: equipment.warrantyDate,
+                    installerName: equipment.installer,
+                    testerName: equipment.tester,
+                    notes: equipment.notes,
+                    photoURL: equipment.photo || equipment.photo_url
+                };
+
+                await SupabaseService.updateEquipment(id, updateData);
                 console.log('✅ Equipment updated in Supabase');
             }
         } else {
+            // Prepare equipment data for Supabase (camelCase field names)
+            const equipmentData = {
+                locationId,  // Required by Supabase
+                inventoryNumber,
+                type,
+                status,
+                manufacturer,
+                model,
+                serialNumber,
+                ipAddress: ip,
+                macAddress: mac,
+                xCoord: x,
+                yCoord: y,
+                zCoord: z,
+                installationDate: installDate,
+                warrantyExpiry: warrantyDate,
+                installerName: installer,
+                testerName: tester,
+                notes,
+                photoURL: photoUrl
+            };
+
+            // Save to Supabase (will return new UUID)
+            const newEquipmentId = await SupabaseService.createEquipment(equipmentData);
+            console.log('✅ Equipment saved to Supabase with ID:', newEquipmentId);
+
+            // Add to local data with full structure (snake_case for LocalStorage compatibility)
             const newEquipment = {
-                id: generateId(),
+                id: newEquipmentId,
                 type,
                 inventoryNumber,
                 status,
@@ -1732,32 +1779,23 @@ async function saveEquipment(event) {
                 manufacturer,
                 model,
                 serial_number: serialNumber,
-                ip,
-                mac,
-                x,
-                y,
-                z,
-                installDate,
-                warrantyDate,
-                installer,
-                tester,
+                ip_address: ip,
+                mac_address: mac,
+                x_coord: x,
+                y_coord: y,
+                z_coord: z,
+                installation_date: installDate,
+                warranty_expiry: warrantyDate,
+                installer_name: installer,
+                tester_name: tester,
                 notes,
-                photo: photoUrl,
+                photo_url: photoUrl,
                 documents: newDocs.length > 0 ? newDocs : [],
                 maintenance: [],
-                history: [{
-                    date: new Date().toISOString(),
-                    action: 'Oprema kreirana',
-                    details: `${type} - ${inventoryNumber}`
-                }],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
             location.equipment.push(newEquipment);
-
-            // Save to Supabase
-            await SupabaseService.addEquipment(newEquipment, locationId);
-            console.log('✅ Equipment saved to Supabase');
         }
 
         saveData();

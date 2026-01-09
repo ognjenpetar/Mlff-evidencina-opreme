@@ -7,19 +7,12 @@
  */
 
 // Import Supabase configuration and functions
-import supabase, {
-    loginWithGoogle,
-    logout,
-    getCurrentUser,
-    isAuthenticated,
-    setupAuthListener,
-    testConnection
-} from './config/supabase.js';
+import supabase, { testConnection } from './config/supabase.js';
 
 // Import Supabase service
 import SupabaseService from './services/supabase.js';
 
-console.log('🚀 Initializing MLFF Equipment Tracking Application v4.0.0');
+console.log('🚀 Initializing MLFF Equipment Tracking Application v4.0.0 (Anonymous Mode)');
 
 // ==========================================
 // EXPOSE TO GLOBAL SCOPE
@@ -30,21 +23,11 @@ window.supabase = supabase;
 window.supabaseClient = supabase;
 window.SupabaseService = SupabaseService;
 
-// Auth functions
-window.loginWithGoogle = loginWithGoogle;
-window.logout = logout;
-window.getCurrentUser = getCurrentUser;
-window.isAuthenticated = isAuthenticated;
-
 console.log('✅ Supabase client and service exposed globally');
 
 // ==========================================
 // INITIALIZE APPLICATION
 // ==========================================
-
-// Setup auth state listener
-setupAuthListener();
-console.log('✅ Auth state listener initialized');
 
 // Test connection to Supabase
 testConnection();

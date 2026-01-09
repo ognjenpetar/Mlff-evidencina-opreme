@@ -271,6 +271,15 @@ const SupabaseService = {
     },
 
     /**
+     * Add new equipment (alias for createEquipment for compatibility)
+     * @param {Object} data - Equipment data
+     * @returns {Promise<string>} New equipment UUID
+     */
+    async addEquipment(data) {
+        return await this.createEquipment(data);
+    },
+
+    /**
      * Update existing equipment
      * @param {string} id - Equipment UUID
      * @param {Object} data - Updated equipment data

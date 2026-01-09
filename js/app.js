@@ -1294,6 +1294,7 @@ async function saveLocation(event) {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploadujem fotografiju...';
 
             try {
+                // Use existing ID for update, or generate temporary ID for new location
                 const locationId = id || generateId();
                 photoUrl = await SupabaseService.uploadPhoto('location', locationId, file);
                 console.log('✅ Photo uploaded:', photoUrl);
@@ -1311,28 +1312,36 @@ async function saveLocation(event) {
 
         if (id) {
             // Update existing location
+            const updateData = {
+                name,
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
+                description,
+                photoURL: photoUrl  // Use photoURL (will be mapped to photo_url in service)
+            };
+
+            // Update in Supabase
+            await SupabaseService.updateLocation(id, updateData);
+            console.log('✅ Location updated in Supabase');
+
+            // Update in local data
             const location = appData.locations.find(l => l.id === id);
             if (location) {
                 location.name = name;
-                location.latitude = latitude;
-                location.longitude = longitude;
+                location.latitude = parseFloat(latitude);
+                location.longitude = parseFloat(longitude);
                 location.description = description;
-                if (photoUrl) location.photo = photoUrl;
-                location.updatedAt = new Date().toISOString();
-
-                // Update in Supabase
-                await SupabaseService.updateLocation(id, location);
-                console.log('✅ Location updated in Supabase');
+                if (photoUrl) location.photo_url = photoUrl;
+                location.updated_at = new Date().toISOString();
             }
         } else {
             // Create new location
             const newLocation = {
                 name,
-                latitude,
-                longitude,
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
                 description,
-                photoURL: photoUrl,  // Use photoURL for Supabase compatibility
-                address: address || null
+                photoURL: photoUrl  // Use photoURL for Supabase compatibility
             };
 
             // Save to Supabase (Supabase will generate UUID automatically)
@@ -1343,11 +1352,10 @@ async function saveLocation(event) {
             appData.locations.push({
                 id: newLocationId,
                 name,
-                latitude,
-                longitude,
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
                 description,
                 photo_url: photoUrl,
-                address: address || null,
                 equipment: [],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()

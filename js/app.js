@@ -44,7 +44,7 @@ let mapInstance = null;
 let mapMarkers = [];
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     loadData();
     loadSettings();
     loadCustomTypes();
@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize router routes
     initializeRouter();
+
+    // Migrate LocalStorage data to Supabase (one-time operation)
+    await migrateLocalStorageToSupabase();
 
     // Initialize maintenance notifications
     initMaintenanceNotifications();
@@ -136,6 +139,118 @@ function loadData() {
             console.error('Error loading data:', e);
             appData = { locations: [], lastModified: null, lastBackup: null };
         }
+    }
+}
+
+// Migrate LocalStorage data to Supabase (one-time operation)
+async function migrateLocalStorageToSupabase() {
+    const MIGRATION_KEY = 'mlff_data_migrated_to_supabase';
+
+    // Check if migration already completed
+    if (localStorage.getItem(MIGRATION_KEY) === 'true') {
+        console.log('✅ Data migration already completed, skipping...');
+        return;
+    }
+
+    console.log('🔄 Starting LocalStorage → Supabase migration...');
+
+    try {
+        let migratedLocations = 0;
+        let migratedEquipment = 0;
+
+        // Migrate each location
+        for (const location of appData.locations) {
+            // Check if location already exists in Supabase
+            const { data: existing, error: checkError } = await supabase
+                .from('locations')
+                .select('id')
+                .eq('id', location.id)
+                .maybeSingle();
+
+            if (!existing) {
+                // Location doesn't exist, create it
+                const locationData = {
+                    id: location.id, // Keep the same UUID
+                    name: location.name,
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    description: location.description || null,
+                    photoURL: location.photo_url || null
+                };
+
+                const { error: createError } = await supabase
+                    .from('locations')
+                    .insert([locationData]);
+
+                if (createError) {
+                    console.error(`❌ Failed to migrate location ${location.name}:`, createError);
+                } else {
+                    migratedLocations++;
+                    console.log(`✅ Migrated location: ${location.name}`);
+                }
+            }
+
+            // Migrate equipment for this location
+            if (location.equipment && location.equipment.length > 0) {
+                for (const equipment of location.equipment) {
+                    // Check if equipment already exists
+                    const { data: existingEq, error: eqCheckError } = await supabase
+                        .from('equipment')
+                        .select('id')
+                        .eq('id', equipment.id)
+                        .maybeSingle();
+
+                    if (!existingEq) {
+                        // Equipment doesn't exist, create it
+                        const equipmentData = {
+                            id: equipment.id, // Keep the same UUID
+                            location_id: location.id,
+                            inventory_number: equipment.inventoryNumber,
+                            type: equipment.type,
+                            status: equipment.status || 'Aktivna',
+                            manufacturer: equipment.manufacturer || null,
+                            model: equipment.model || null,
+                            serial_number: equipment.serial_number || equipment.serialNumber || null,
+                            ip_address: equipment.ip_address || equipment.ipAddress || null,
+                            mac_address: equipment.mac_address || equipment.macAddress || null,
+                            x_coord: parseInt(equipment.x_coord || equipment.xCoord) || 0,
+                            y_coord: parseInt(equipment.y_coord || equipment.yCoord) || 0,
+                            z_coord: parseInt(equipment.z_coord || equipment.zCoord) || 0,
+                            installation_date: equipment.installation_date || equipment.installationDate || null,
+                            installer_name: equipment.installer_name || equipment.installerName || null,
+                            tester_name: equipment.tester_name || equipment.testerName || null,
+                            warranty_expiry: equipment.warranty_expiry || equipment.warrantyExpiry || null,
+                            photo_url: equipment.photo_url || equipment.photoURL || null,
+                            notes: equipment.notes || null
+                        };
+
+                        const { error: createEqError } = await supabase
+                            .from('equipment')
+                            .insert([equipmentData]);
+
+                        if (createEqError) {
+                            console.error(`❌ Failed to migrate equipment ${equipment.inventoryNumber}:`, createEqError);
+                        } else {
+                            migratedEquipment++;
+                            console.log(`✅ Migrated equipment: ${equipment.inventoryNumber}`);
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log(`🎉 Migration complete! Migrated ${migratedLocations} locations and ${migratedEquipment} equipment.`);
+
+        // Mark migration as complete
+        localStorage.setItem(MIGRATION_KEY, 'true');
+
+        // Show success message if any data was migrated
+        if (migratedLocations > 0 || migratedEquipment > 0) {
+            showToast(`✅ Migrirano ${migratedLocations} lokacija i ${migratedEquipment} opreme u Supabase!`, 'success');
+        }
+    } catch (error) {
+        console.error('❌ Migration error:', error);
+        showToast('Greška pri migraciji podataka. Proverite konzolu za detalje.', 'error');
     }
 }
 

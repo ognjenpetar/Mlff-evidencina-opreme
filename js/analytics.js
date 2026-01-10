@@ -21,6 +21,31 @@ async function initAnalyticsView() {
     const maintenanceData = await getMaintenanceTrends();
     const costlyEquipment = await getCostlyEquipment();
 
+    // Check if data loaded successfully
+    if (!stats) {
+        console.error('❌ Failed to load equipment statistics');
+        // Show empty state with default values
+        const emptyStats = {
+            total: 0,
+            statusCounts: {},
+            typeCounts: {},
+            ageCounts: {
+                '0-1 godina': 0,
+                '1-3 godine': 0,
+                '3-5 godina': 0,
+                '5+ godina': 0
+            },
+            totalMaintenanceCost: 0
+        };
+        updateKPIs(emptyStats);
+        renderStatusPieChart(emptyStats.statusCounts);
+        renderTypeBarChart(emptyStats.typeCounts);
+        renderCostTrendChart(maintenanceData || []);
+        renderAgeDistributionChart(emptyStats.ageCounts);
+        renderCostlyEquipmentTable(costlyEquipment || []);
+        return;
+    }
+
     // Update KPIs
     updateKPIs(stats);
 

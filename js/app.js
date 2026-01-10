@@ -992,8 +992,16 @@ function renderHistoryLog(equipment) {
 async function renderDocumentsList(equipment) {
     const container = document.getElementById('documentsList');
 
-    // Specific documents (from equipment.documents)
-    const specificDocs = equipment.documents || [];
+    // Specific documents - fetch from Supabase
+    let specificDocs = [];
+    try {
+        if (typeof SupabaseService !== 'undefined' && equipment.id) {
+            specificDocs = await SupabaseService.getDocuments(equipment.id);
+            console.log(`✅ Fetched ${specificDocs.length} specific documents from Supabase`);
+        }
+    } catch (e) {
+        console.warn('Could not fetch specific documents:', e);
+    }
 
     // Shared documents (from type_shared_documents table) - fetch from Supabase
     let sharedDocs = [];
@@ -1021,7 +1029,7 @@ async function renderDocumentsList(equipment) {
             <h5><i class="fas fa-file-alt"></i> Specifična Dokumentacija</h5>
             ${specificDocs.length === 0
                 ? '<p class="no-data">Nema specifične dokumentacije</p>'
-                : specificDocs.map((doc, index) => renderSpecificDocumentItem(doc, index)).join('')
+                : specificDocs.map((doc) => renderSpecificDocumentItem(doc)).join('')
             }
         </div>
     `;
@@ -1040,11 +1048,11 @@ async function renderDocumentsList(equipment) {
     container.innerHTML = html;
 }
 
-function renderSpecificDocumentItem(doc, index) {
+function renderSpecificDocumentItem(doc) {
     // Determine icon based on file type
     let icon = 'fa-file';
-    const isPDF = doc.type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf');
-    const isImage = doc.type && doc.type.startsWith('image/');
+    const isPDF = doc.file_type === 'application/pdf' || doc.name.toLowerCase().endsWith('.pdf');
+    const isImage = doc.file_type && doc.file_type.startsWith('image/');
 
     if (isPDF) {
         icon = 'fa-file-pdf';
@@ -1055,9 +1063,9 @@ function renderSpecificDocumentItem(doc, index) {
     // Create preview content based on file type
     let previewContent = '';
     if (isPDF) {
-        previewContent = `<embed src="${doc.data}" type="application/pdf" class="preview-pdf-embed">`;
+        previewContent = `<embed src="${doc.file_url}" type="application/pdf" class="preview-pdf-embed">`;
     } else if (isImage) {
-        previewContent = `<img src="${doc.data}" alt="${doc.name}" class="preview-image-embed">`;
+        previewContent = `<img src="${doc.file_url}" alt="${doc.name}" class="preview-image-embed">`;
     } else {
         previewContent = `<p class="no-preview">Pregled nije dostupan za ovaj tip fajla</p>`;
     }
@@ -1069,10 +1077,10 @@ function renderSpecificDocumentItem(doc, index) {
                 ${doc.name}
             </span>
             <div class="document-actions">
-                <button class="btn btn-icon btn-small" onclick="downloadDocument(${index})" title="Preuzmi">
+                <button class="btn btn-icon btn-small" onclick="downloadDocument('${doc.id}', '${doc.file_url}', '${doc.name}')" title="Preuzmi">
                     <i class="fas fa-download"></i>
                 </button>
-                <button class="btn btn-icon btn-small" onclick="deleteDocument(${index})" title="Obriši">
+                <button class="btn btn-icon btn-small" onclick="deleteDocument('${doc.id}', '${doc.storage_path}', '${doc.name}')" title="Obriši">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1082,7 +1090,7 @@ function renderSpecificDocumentItem(doc, index) {
                 <div class="preview-header">
                     <div>
                         <h4>${doc.name}</h4>
-                        <span class="file-size">${formatFileSize(doc.data)}</span>
+                        <span class="file-size">${formatFileSize(doc.file_size)}</span>
                     </div>
                     <button class="btn-icon-tiny" onclick="event.stopPropagation()" title="Zatvori se na klik van pregleda">
                         <i class="fas fa-info-circle"></i>
@@ -1955,7 +1963,7 @@ function addMaintenanceRecord(event) {
 }
 
 // ===== DOCUMENT MANAGEMENT =====
-function uploadDocuments(event) {
+async function uploadDocuments(event) {
     const files = event.target.files;
     if (!files.length) return;
 
@@ -1981,8 +1989,6 @@ function uploadDocuments(event) {
         return;
     }
 
-    if (!equipment.documents) equipment.documents = [];
-
     const fileCount = files.length;
     const isBulkUpload = fileCount > 3;
 
@@ -1992,97 +1998,81 @@ function uploadDocuments(event) {
     }
 
     let uploadedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
 
-    const promises = Array.from(files).map((file, index) => {
-        return fileToBase64(file).then(data => {
+    // Upload to Supabase Storage
+    for (const file of files) {
+        try {
+            console.log(`📤 Uploading ${file.name} to Supabase...`);
+
+            // Upload to Supabase (returns document UUID)
+            await SupabaseService.uploadDocument(currentEquipmentId, file);
+
+            successCount++;
             uploadedCount++;
+
             if (isBulkUpload) {
                 updateUploadProgress(uploadedCount, fileCount);
             }
-            return {
-                name: file.name,
-                type: file.type,
-                data
-            };
-        }).catch(error => {
-            console.error(`Error uploading ${file.name}:`, error);
-            return null; // Return null for failed uploads
-        });
+
+            console.log(`✅ ${file.name} uploaded successfully`);
+        } catch (error) {
+            console.error(`❌ Error uploading ${file.name}:`, error);
+            failedCount++;
+            uploadedCount++;
+
+            if (isBulkUpload) {
+                updateUploadProgress(uploadedCount, fileCount);
+            }
+        }
+    }
+
+    // Add to history
+    if (!equipment.history) equipment.history = [];
+    equipment.history.push({
+        date: new Date().toISOString(),
+        action: 'Dodati dokumenti',
+        details: `${successCount} dokumenata uploadovano${failedCount > 0 ? ` (${failedCount} neuspešno)` : ''}`
     });
 
-    Promise.all(promises).then(docs => {
-        // Filter out failed uploads
-        const successfulDocs = docs.filter(doc => doc !== null);
-        const failedCount = fileCount - successfulDocs.length;
+    // Save and refresh
+    await saveData();
+    await renderDocumentsList(equipment);
 
-        equipment.documents.push(...successfulDocs);
+    if (isBulkUpload) {
+        hideUploadProgress();
+    }
 
-        // Add to history
-        if (!equipment.history) equipment.history = [];
-        equipment.history.push({
-            date: new Date().toISOString(),
-            action: 'Dodati dokumenti',
-            details: `${successfulDocs.length} dokumenata uploadovano${failedCount > 0 ? ` (${failedCount} neuspešno)` : ''}`
-        });
-
-        saveData();
-        renderDocumentsList(equipment);
-
-        if (isBulkUpload) {
-            hideUploadProgress();
-        }
-
-        // Show success/error message
-        if (failedCount > 0) {
-            alert(`Upload završen: ${successfulDocs.length} uspešno, ${failedCount} neuspešno`);
-        } else if (successfulDocs.length > 1) {
-            alert(`Uspešno uploadovano ${successfulDocs.length} dokumenata!`);
-        }
-    }).catch(error => {
-        console.error('Upload error:', error);
-        alert('Greška pri upload-u dokumenata: ' + error.message);
-        if (isBulkUpload) {
-            hideUploadProgress();
-        }
-    });
+    // Show success/error message
+    if (failedCount > 0) {
+        alert(`Upload završen: ${successCount} uspešno, ${failedCount} neuspešno`);
+    } else if (successCount > 1) {
+        alert(`Uspešno uploadovano ${successCount} dokumenata!`);
+    }
 
     event.target.value = '';
 }
 
-function downloadDocument(index) {
-    const location = appData.locations.find(l => l.id === currentLocationId);
-    if (!location) {
-        alert('Greška: Lokacija nije pronađena');
-        return;
-    }
-
-    const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
-    if (!equipment) {
-        alert('Greška: Oprema nije pronađena');
-        return;
-    }
-
-    if (!equipment.documents || !equipment.documents[index]) {
-        alert('Greška: Dokument nije pronađen');
-        return;
-    }
-
-    const doc = equipment.documents[index];
-
+function downloadDocument(docId, fileUrl, fileName) {
     try {
+        // Open the Supabase Storage URL in a new tab for download
         const link = document.createElement('a');
-        link.href = doc.data;
-        link.download = doc.name;
+        link.href = fileUrl;
+        link.download = fileName;
+        link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        console.log(`✅ Document download initiated: ${fileName}`);
     } catch (error) {
-        console.error('Download error:', error);
+        console.error('❌ Download error:', error);
         alert('Greška pri preuzimanju dokumenta: ' + error.message);
     }
 }
 
-function deleteDocument(index) {
+async function deleteDocument(docId, storagePath, docName) {
     const location = appData.locations.find(l => l.id === currentLocationId);
     if (!location) {
         alert('Greška: Lokacija nije pronađena');
@@ -2095,29 +2085,31 @@ function deleteDocument(index) {
         return;
     }
 
-    if (!equipment.documents || !equipment.documents[index]) {
-        alert('Greška: Dokument nije pronađen');
-        return;
-    }
-
-    const docName = equipment.documents[index].name;
-
     showConfirm(
         'Brisanje Dokumenta',
         `Da li ste sigurni da želite da obrišete dokument "${docName}"?`,
-        () => {
-            equipment.documents.splice(index, 1);
+        async () => {
+            try {
+                // Delete from Supabase (both Storage and PostgreSQL)
+                await SupabaseService.deleteDocument(currentEquipmentId, docId, storagePath);
+                console.log(`✅ Document deleted from Supabase: ${docName}`);
 
-            // Add to history
-            if (!equipment.history) equipment.history = [];
-            equipment.history.push({
-                date: new Date().toISOString(),
-                action: 'Dokument obrisan',
-                details: docName
-            });
+                // Add to history
+                if (!equipment.history) equipment.history = [];
+                equipment.history.push({
+                    date: new Date().toISOString(),
+                    action: 'Dokument obrisan',
+                    details: docName
+                });
 
-            saveData();
-            renderDocumentsList(equipment);
+                await saveData();
+                await renderDocumentsList(equipment);
+
+                alert(`Dokument "${docName}" je uspešno obrisan.`);
+            } catch (error) {
+                console.error('❌ Error deleting document:', error);
+                alert('Greška pri brisanju dokumenta: ' + error.message);
+            }
         }
     );
 }

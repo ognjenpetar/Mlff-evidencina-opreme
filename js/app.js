@@ -1316,9 +1316,13 @@ async function saveLocation(event) {
                 name,
                 latitude: parseFloat(latitude),
                 longitude: parseFloat(longitude),
-                description,
-                photoURL: photoUrl  // Use photoURL (will be mapped to photo_url in service)
+                description
             };
+
+            // Only include photo if a new one was uploaded
+            if (photoUrl) {
+                updateData.photoURL = photoUrl;
+            }
 
             // Update in Supabase
             await SupabaseService.updateLocation(id, updateData);

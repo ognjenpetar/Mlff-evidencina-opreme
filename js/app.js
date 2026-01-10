@@ -1773,10 +1773,10 @@ async function saveEquipment(event) {
             }
         }
 
-        // Handle document uploads (still using Base64 for documents - only photos use Supabase Storage)
+        // Handle document uploads - upload directly to Supabase Storage
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesiranje dokumenata...';
         const docsInput = document.getElementById('eqFormDocs');
-        let newDocs = [];
+        let pendingDocUploads = [];
 
         if (docsInput && docsInput.files.length > 0) {
             // Validate files before processing
@@ -1788,14 +1788,8 @@ async function saveEquipment(event) {
                 return;
             }
 
-            const docPromises = Array.from(docsInput.files).map(file => {
-                return fileToBase64(file).then(data => ({
-                    name: file.name,
-                    type: file.type,
-                    data
-                }));
-            });
-            newDocs = await Promise.all(docPromises);
+            // Store files for upload after equipment is saved (need equipment ID)
+            pendingDocUploads = Array.from(docsInput.files);
         }
 
         // Save equipment
@@ -1848,14 +1842,12 @@ async function saveEquipment(event) {
                 if (photoUrl) equipment.photo = photoUrl;
                 equipment.updatedAt = new Date().toISOString();
 
-                // Update documents: combine kept existing + new documents
-                equipment.documents = [...existingDocsToKeep, ...newDocs];
+                // Keep existing documents (new ones will be uploaded to Supabase Storage after save)
+                equipment.documents = [...existingDocsToKeep];
 
-                // Track document changes
-                const oldDocCount = equipment.documents?.length || 0;
-                const newDocCount = equipment.documents.length;
-                if (oldDocCount !== newDocCount) {
-                    changes.push(`Dokumenta: ${oldDocCount} → ${newDocCount}`);
+                // Track if new documents will be uploaded
+                if (pendingDocUploads.length > 0) {
+                    changes.push(`Dodavanje ${pendingDocUploads.length} novih dokumenata`);
                 }
 
                 // Add to history with enhanced tracking
@@ -1875,6 +1867,7 @@ async function saveEquipment(event) {
                     inventoryNumber: equipment.inventoryNumber,
                     type: equipment.type,
                     status: equipment.status,
+                    subLocation: equipment.sub_location,
                     manufacturer: equipment.manufacturer,
                     model: equipment.model,
                     serialNumber: equipment.serial_number || equipment.serialNumber,
@@ -1893,6 +1886,19 @@ async function saveEquipment(event) {
 
                 await SupabaseService.updateEquipment(id, updateData);
                 console.log('✅ Equipment updated in Supabase');
+
+                // Upload new documents to Supabase Storage
+                if (pendingDocUploads.length > 0) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload dokumenata...';
+                    for (const file of pendingDocUploads) {
+                        try {
+                            await SupabaseService.uploadDocument(id, file);
+                            console.log(`✅ Document uploaded: ${file.name}`);
+                        } catch (docError) {
+                            console.error(`❌ Error uploading ${file.name}:`, docError);
+                        }
+                    }
+                }
             }
         } else {
             // Prepare equipment data for Supabase (camelCase field names)
@@ -1901,6 +1907,7 @@ async function saveEquipment(event) {
                 inventoryNumber,
                 type,
                 status,
+                subLocation,
                 manufacturer,
                 model,
                 serialNumber,
@@ -1920,6 +1927,19 @@ async function saveEquipment(event) {
             // Save to Supabase (will return new UUID)
             const newEquipmentId = await SupabaseService.createEquipment(equipmentData);
             console.log('✅ Equipment saved to Supabase with ID:', newEquipmentId);
+
+            // Upload documents to Supabase Storage
+            if (pendingDocUploads.length > 0) {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload dokumenata...';
+                for (const file of pendingDocUploads) {
+                    try {
+                        await SupabaseService.uploadDocument(newEquipmentId, file);
+                        console.log(`✅ Document uploaded: ${file.name}`);
+                    } catch (docError) {
+                        console.error(`❌ Error uploading ${file.name}:`, docError);
+                    }
+                }
+            }
 
             // Add to local data with full structure (snake_case for LocalStorage compatibility)
             const newEquipment = {
@@ -1942,7 +1962,7 @@ async function saveEquipment(event) {
                 tester_name: tester,
                 notes,
                 photo_url: photoUrl,
-                documents: newDocs.length > 0 ? newDocs : [],
+                documents: [], // Documents are now stored in Supabase Storage
                 maintenance: [],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()

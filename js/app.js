@@ -946,7 +946,7 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
 }
 
 // ===== EQUIPMENT DETAIL RENDERING =====
-function renderEquipmentDetail() {
+async function renderEquipmentDetail() {
     const location = appData.locations.find(l => l.id === currentLocationId);
     if (!location) {
         showDashboard();
@@ -1030,18 +1030,30 @@ function renderEquipmentDetail() {
     }
 
     // Maintenance
-    renderMaintenanceInfo(equipment);
+    await renderMaintenanceInfo(equipment);
 
     // Documents
-    renderDocumentsList(equipment);
+    await renderDocumentsList(equipment);
 
     // History
     renderHistoryLog(equipment);
 }
 
-function renderMaintenanceInfo(equipment) {
+async function renderMaintenanceInfo(equipment) {
     const container = document.getElementById('maintenanceInfo');
-    const maintenance = equipment.maintenance || [];
+
+    // Fetch maintenance from Supabase
+    let maintenance = [];
+    try {
+        if (typeof SupabaseService !== 'undefined' && equipment.id) {
+            maintenance = await SupabaseService.getMaintenanceHistory(equipment.id);
+            console.log(`✅ Fetched ${maintenance.length} maintenance records from Supabase`);
+        }
+    } catch (error) {
+        console.warn('Could not fetch maintenance history:', error);
+        // Fallback to LocalStorage data
+        maintenance = equipment.maintenance || [];
+    }
 
     if (maintenance.length === 0) {
         container.innerHTML = '<p class="no-data">Nema servisnih zapisa</p>';
@@ -2042,7 +2054,7 @@ function showAddMaintenanceModal() {
     openModal('maintenanceModal');
 }
 
-function addMaintenanceRecord(event) {
+async function addMaintenanceRecord(event) {
     event.preventDefault();
 
     const location = appData.locations.find(l => l.id === currentLocationId);
@@ -2051,30 +2063,44 @@ function addMaintenanceRecord(event) {
     const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
     if (!equipment) return;
 
-    if (!equipment.maintenance) equipment.maintenance = [];
-    if (!equipment.history) equipment.history = [];
+    try {
+        const maintenanceData = {
+            type: document.getElementById('maintType').value,
+            date: document.getElementById('maintDate').value,
+            technician: document.getElementById('maintTechnician').value.trim(),
+            description: document.getElementById('maintDescription').value.trim(),
+            cost: document.getElementById('maintCost').value ? parseFloat(document.getElementById('maintCost').value) : null,
+            nextServiceDate: document.getElementById('maintNextDate').value || null
+        };
 
-    const record = {
-        id: generateId(),
-        type: document.getElementById('maintType').value,
-        date: document.getElementById('maintDate').value,
-        technician: document.getElementById('maintTechnician').value.trim(),
-        description: document.getElementById('maintDescription').value.trim(),
-        cost: document.getElementById('maintCost').value ? parseFloat(document.getElementById('maintCost').value) : null,
-        nextDate: document.getElementById('maintNextDate').value || null
-    };
+        // Add to Supabase (returns maintenance UUID)
+        const maintenanceId = await SupabaseService.addMaintenance(currentEquipmentId, maintenanceData);
+        console.log('✅ Maintenance record saved to Supabase with ID:', maintenanceId);
 
-    equipment.maintenance.push(record);
+        // Add to local data for immediate UI update
+        if (!equipment.maintenance) equipment.maintenance = [];
+        equipment.maintenance.push({
+            id: maintenanceId,
+            ...maintenanceData
+        });
 
-    equipment.history.push({
-        date: new Date().toISOString(),
-        action: `Servis: ${record.type}`,
-        details: record.description || `Serviser: ${record.technician || 'Nepoznato'}`
-    });
+        // Add to history
+        if (!equipment.history) equipment.history = [];
+        equipment.history.push({
+            date: new Date().toISOString(),
+            action: `Servis: ${maintenanceData.type}`,
+            details: maintenanceData.description || `Serviser: ${maintenanceData.technician || 'Nepoznato'}`
+        });
 
-    saveData();
-    closeModal('maintenanceModal');
-    renderEquipmentDetail();
+        await saveData();
+        closeModal('maintenanceModal');
+        renderEquipmentDetail();
+
+        showToast('✅ Servisni zapis uspešno dodat!', 'success');
+    } catch (error) {
+        console.error('❌ Error adding maintenance record:', error);
+        alert('Greška pri dodavanju servisnog zapisa: ' + error.message);
+    }
 }
 
 // ===== DOCUMENT MANAGEMENT =====

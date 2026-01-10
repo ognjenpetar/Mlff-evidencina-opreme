@@ -38,6 +38,10 @@ let customEquipmentTypes = [];
 
 let currentLocationId = null;
 let currentEquipmentId = null;
+
+// Bulk operations state
+let bulkSelectMode = false;
+let selectedEquipmentIds = new Set();
 let qrCodeInstance = null;
 let qrCodeSmallInstance = null;
 let mapInstance = null;
@@ -63,6 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize maintenance notifications
     initMaintenanceNotifications();
+
+    // Initialize notifications center
+    initNotifications();
 });
 
 function initializeRouter() {
@@ -461,9 +468,613 @@ function getStatusDotClass(status) {
     switch(status) {
         case 'Na servisu': return 'service';
         case 'Neispravna': return 'broken';
+        case 'Neaktivna': return 'inactive';
         case 'Povučena': return 'retired';
         default: return 'active';
     }
+}
+
+// ===== BULK OPERATIONS =====
+function toggleBulkSelectMode() {
+    bulkSelectMode = !bulkSelectMode;
+    const toolbar = document.getElementById('bulkActionsToolbar');
+    const btn = document.getElementById('bulkModeBtn');
+    const locationDetail = document.getElementById('locationDetailView');
+
+    if (bulkSelectMode) {
+        toolbar.style.display = 'flex';
+        btn.classList.add('active');
+        btn.innerHTML = '<i class="fas fa-times"></i> Isključi';
+        locationDetail.classList.add('bulk-select-mode');
+    } else {
+        toolbar.style.display = 'none';
+        btn.classList.remove('active');
+        btn.innerHTML = '<i class="fas fa-check-double"></i> Masovno';
+        locationDetail.classList.remove('bulk-select-mode');
+        cancelBulkSelection();
+    }
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAllEquipment');
+    const location = appData.locations.find(l => l.id === currentLocationId);
+
+    if (!location || !location.equipment) return;
+
+    if (selectAllCheckbox.checked) {
+        // Select all visible equipment
+        location.equipment.forEach(eq => {
+            selectedEquipmentIds.add(eq.id);
+            const card = document.querySelector(`.equipment-card[data-id="${eq.id}"]`);
+            if (card) {
+                card.classList.add('selected');
+                const checkbox = card.querySelector('.bulk-checkbox');
+                if (checkbox) checkbox.checked = true;
+            }
+        });
+    } else {
+        // Deselect all
+        selectedEquipmentIds.clear();
+        document.querySelectorAll('.equipment-card.selected').forEach(card => {
+            card.classList.remove('selected');
+            const checkbox = card.querySelector('.bulk-checkbox');
+            if (checkbox) checkbox.checked = false;
+        });
+    }
+
+    updateSelectedCount();
+}
+
+function toggleEquipmentSelect(equipmentId, event) {
+    if (!bulkSelectMode) return;
+
+    // Prevent default card click behavior
+    if (event) {
+        event.stopPropagation();
+    }
+
+    const card = document.querySelector(`.equipment-card[data-id="${equipmentId}"]`);
+    const checkbox = card?.querySelector('.bulk-checkbox');
+
+    if (selectedEquipmentIds.has(equipmentId)) {
+        selectedEquipmentIds.delete(equipmentId);
+        if (card) card.classList.remove('selected');
+        if (checkbox) checkbox.checked = false;
+    } else {
+        selectedEquipmentIds.add(equipmentId);
+        if (card) card.classList.add('selected');
+        if (checkbox) checkbox.checked = true;
+    }
+
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const countEl = document.getElementById('selectedCount');
+    const selectAllCheckbox = document.getElementById('selectAllEquipment');
+    const location = appData.locations.find(l => l.id === currentLocationId);
+
+    if (countEl) {
+        countEl.textContent = selectedEquipmentIds.size;
+    }
+
+    // Update select all checkbox state
+    if (selectAllCheckbox && location) {
+        const totalEquipment = location.equipment?.length || 0;
+        selectAllCheckbox.checked = totalEquipment > 0 && selectedEquipmentIds.size === totalEquipment;
+        selectAllCheckbox.indeterminate = selectedEquipmentIds.size > 0 && selectedEquipmentIds.size < totalEquipment;
+    }
+}
+
+function cancelBulkSelection() {
+    selectedEquipmentIds.clear();
+    document.querySelectorAll('.equipment-card.selected').forEach(card => {
+        card.classList.remove('selected');
+        const checkbox = card.querySelector('.bulk-checkbox');
+        if (checkbox) checkbox.checked = false;
+    });
+
+    const selectAllCheckbox = document.getElementById('selectAllEquipment');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+
+    updateSelectedCount();
+}
+
+function bulkChangeStatus() {
+    if (selectedEquipmentIds.size === 0) {
+        showToast('Odaberite barem jednu opremu', 'warning');
+        return;
+    }
+
+    document.getElementById('bulkStatusCount').textContent = selectedEquipmentIds.size;
+    openModal('bulkStatusModal');
+}
+
+async function executeBulkStatusChange(event) {
+    event.preventDefault();
+
+    const newStatus = document.getElementById('bulkNewStatus').value;
+    const reason = document.getElementById('bulkStatusReason').value || 'Masovna promena statusa';
+
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ažuriram...';
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const equipmentId of selectedEquipmentIds) {
+        try {
+            // Find equipment in local data
+            let equipment = null;
+            let location = null;
+
+            for (const loc of appData.locations) {
+                equipment = loc.equipment?.find(eq => eq.id === equipmentId);
+                if (equipment) {
+                    location = loc;
+                    break;
+                }
+            }
+
+            if (!equipment) continue;
+
+            const oldStatus = equipment.status || 'Aktivna';
+
+            // Update in Supabase
+            if (typeof SupabaseService !== 'undefined') {
+                await SupabaseService.updateEquipment(equipmentId, { status: newStatus });
+            }
+
+            // Update local data
+            equipment.status = newStatus;
+            if (!equipment.history) equipment.history = [];
+            equipment.history.push({
+                date: new Date().toISOString(),
+                action: 'Promena statusa (masovno)',
+                details: `${oldStatus} → ${newStatus}. Razlog: ${reason}`
+            });
+
+            successCount++;
+        } catch (error) {
+            console.error(`Error updating equipment ${equipmentId}:`, error);
+            errorCount++;
+        }
+    }
+
+    saveData();
+    closeModal('bulkStatusModal');
+
+    // Reset form
+    document.getElementById('bulkStatusForm').reset();
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalText;
+
+    // Exit bulk mode and refresh
+    toggleBulkSelectMode();
+    renderLocationDetail();
+
+    if (errorCount > 0) {
+        showToast(`Ažurirano ${successCount} uređaja. Greške: ${errorCount}`, 'warning');
+    } else {
+        showToast(`Uspešno ažurirano ${successCount} uređaja`, 'success');
+    }
+}
+
+async function bulkDelete() {
+    if (selectedEquipmentIds.size === 0) {
+        showToast('Odaberite barem jednu opremu', 'warning');
+        return;
+    }
+
+    const confirmMessage = `Da li ste sigurni da želite da obrišete ${selectedEquipmentIds.size} uređaja?\n\nOva akcija je nepovratna!`;
+
+    if (!confirm(confirmMessage)) return;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    showToast('Brisanje u toku...', 'info');
+
+    for (const equipmentId of selectedEquipmentIds) {
+        try {
+            // Delete from Supabase
+            if (typeof SupabaseService !== 'undefined') {
+                await SupabaseService.deleteEquipment(equipmentId);
+            }
+
+            // Remove from local data
+            for (const location of appData.locations) {
+                const index = location.equipment?.findIndex(eq => eq.id === equipmentId);
+                if (index !== undefined && index !== -1) {
+                    location.equipment.splice(index, 1);
+                    break;
+                }
+            }
+
+            successCount++;
+        } catch (error) {
+            console.error(`Error deleting equipment ${equipmentId}:`, error);
+            errorCount++;
+        }
+    }
+
+    saveData();
+
+    // Exit bulk mode and refresh
+    toggleBulkSelectMode();
+    renderLocationDetail();
+    renderStructureTree();
+
+    if (errorCount > 0) {
+        showToast(`Obrisano ${successCount} uređaja. Greške: ${errorCount}`, 'warning');
+    } else {
+        showToast(`Uspešno obrisano ${successCount} uređaja`, 'success');
+    }
+}
+
+// ===== NOTIFICATIONS =====
+let notifications = [];
+let notificationsRead = new Set();
+
+function toggleNotifications() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    const isVisible = dropdown.style.display !== 'none';
+
+    if (isVisible) {
+        dropdown.style.display = 'none';
+    } else {
+        dropdown.style.display = 'block';
+        refreshNotifications();
+    }
+}
+
+function refreshNotifications() {
+    notifications = [];
+
+    const today = new Date();
+    const sevenDaysFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    appData.locations.forEach(loc => {
+        (loc.equipment || []).forEach(eq => {
+            // Check warranty expiry
+            const warranty = eq.warrantyDate || eq.warranty_expiry;
+            if (warranty) {
+                const warrantyDate = new Date(warranty);
+                if (warrantyDate <= today) {
+                    notifications.push({
+                        id: `warranty-expired-${eq.id}`,
+                        type: 'danger',
+                        icon: 'fa-exclamation-triangle',
+                        title: 'Garancija istekla',
+                        message: `${eq.type} (${eq.inventoryNumber}) - garancija istekla ${formatDate(warrantyDate)}`,
+                        equipmentId: eq.id,
+                        locationId: loc.id,
+                        date: warrantyDate
+                    });
+                } else if (warrantyDate <= sevenDaysFromNow) {
+                    const daysLeft = Math.ceil((warrantyDate - today) / (1000 * 60 * 60 * 24));
+                    notifications.push({
+                        id: `warranty-soon-${eq.id}`,
+                        type: 'warning',
+                        icon: 'fa-clock',
+                        title: 'Garancija ističe uskoro',
+                        message: `${eq.type} (${eq.inventoryNumber}) - ističe za ${daysLeft} dana`,
+                        equipmentId: eq.id,
+                        locationId: loc.id,
+                        date: warrantyDate
+                    });
+                } else if (warrantyDate <= thirtyDaysFromNow) {
+                    const daysLeft = Math.ceil((warrantyDate - today) / (1000 * 60 * 60 * 24));
+                    notifications.push({
+                        id: `warranty-month-${eq.id}`,
+                        type: 'info',
+                        icon: 'fa-info-circle',
+                        title: 'Garancija ističe',
+                        message: `${eq.type} (${eq.inventoryNumber}) - ističe za ${daysLeft} dana`,
+                        equipmentId: eq.id,
+                        locationId: loc.id,
+                        date: warrantyDate
+                    });
+                }
+            }
+
+            // Check maintenance records for upcoming service
+            const maintenance = eq.maintenance || [];
+            maintenance.forEach(m => {
+                if (m.next_service_date || m.nextServiceDate) {
+                    const nextService = new Date(m.next_service_date || m.nextServiceDate);
+                    if (nextService <= today) {
+                        notifications.push({
+                            id: `maintenance-due-${eq.id}-${m.date}`,
+                            type: 'danger',
+                            icon: 'fa-wrench',
+                            title: 'Servis prekoračen',
+                            message: `${eq.type} (${eq.inventoryNumber}) - servis je trebao biti ${formatDate(nextService)}`,
+                            equipmentId: eq.id,
+                            locationId: loc.id,
+                            date: nextService
+                        });
+                    } else if (nextService <= sevenDaysFromNow) {
+                        const daysLeft = Math.ceil((nextService - today) / (1000 * 60 * 60 * 24));
+                        notifications.push({
+                            id: `maintenance-soon-${eq.id}-${m.date}`,
+                            type: 'warning',
+                            icon: 'fa-tools',
+                            title: 'Servis uskoro',
+                            message: `${eq.type} (${eq.inventoryNumber}) - za ${daysLeft} dana`,
+                            equipmentId: eq.id,
+                            locationId: loc.id,
+                            date: nextService
+                        });
+                    }
+                }
+            });
+
+            // Check equipment on service for too long (more than 14 days)
+            if ((eq.status === 'Na servisu') && eq.history) {
+                const lastStatusChange = eq.history
+                    .filter(h => h.action && h.action.includes('status'))
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+                if (lastStatusChange) {
+                    const changeDate = new Date(lastStatusChange.date);
+                    const daysSinceChange = Math.floor((today - changeDate) / (1000 * 60 * 60 * 24));
+
+                    if (daysSinceChange > 14) {
+                        notifications.push({
+                            id: `long-service-${eq.id}`,
+                            type: 'warning',
+                            icon: 'fa-exclamation-circle',
+                            title: 'Dugo na servisu',
+                            message: `${eq.type} (${eq.inventoryNumber}) - ${daysSinceChange} dana na servisu`,
+                            equipmentId: eq.id,
+                            locationId: loc.id,
+                            date: changeDate
+                        });
+                    }
+                }
+            }
+        });
+    });
+
+    // Sort by type priority (danger > warning > info) then by date
+    const typePriority = { 'danger': 0, 'warning': 1, 'info': 2, 'success': 3 };
+    notifications.sort((a, b) => {
+        const priorityDiff = typePriority[a.type] - typePriority[b.type];
+        if (priorityDiff !== 0) return priorityDiff;
+        return new Date(a.date) - new Date(b.date);
+    });
+
+    renderNotifications();
+    updateNotificationBadge();
+}
+
+function renderNotifications() {
+    const list = document.getElementById('notificationsList');
+
+    if (notifications.length === 0) {
+        list.innerHTML = '<p class="no-notifications">Nema novih obaveštenja</p>';
+        return;
+    }
+
+    list.innerHTML = notifications.map(n => {
+        const isUnread = !notificationsRead.has(n.id);
+        return `
+            <div class="notification-item ${isUnread ? 'unread' : ''}" onclick="handleNotificationClick('${n.id}', '${n.equipmentId}', '${n.locationId}')">
+                <div class="notification-icon ${n.type}">
+                    <i class="fas ${n.icon}"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">${n.title}</div>
+                    <div class="notification-message">${n.message}</div>
+                    <div class="notification-time">${formatDate(n.date)}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function handleNotificationClick(notificationId, equipmentId, locationId) {
+    // Mark as read
+    notificationsRead.add(notificationId);
+    updateNotificationBadge();
+    renderNotifications();
+
+    // Close dropdown
+    document.getElementById('notificationsDropdown').style.display = 'none';
+
+    // Navigate to equipment
+    currentLocationId = locationId;
+    showEquipmentDetail(equipmentId);
+}
+
+function markAllNotificationsRead() {
+    notifications.forEach(n => notificationsRead.add(n.id));
+    updateNotificationBadge();
+    renderNotifications();
+    showToast('Sva obaveštenja označena kao pročitana', 'success');
+}
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    const unreadCount = notifications.filter(n => !notificationsRead.has(n.id)).length;
+
+    if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Check notifications on page load and periodically
+function initNotifications() {
+    refreshNotifications();
+    // Refresh every 5 minutes
+    setInterval(refreshNotifications, 5 * 60 * 1000);
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const wrapper = document.querySelector('.notifications-wrapper');
+    const dropdown = document.getElementById('notificationsDropdown');
+
+    if (wrapper && dropdown && !wrapper.contains(e.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+// ===== ADVANCED SEARCH =====
+let advancedSearchActive = false;
+
+function toggleAdvancedSearch() {
+    const panel = document.getElementById('advancedSearchPanel');
+    const btn = document.getElementById('advancedSearchBtn');
+
+    advancedSearchActive = !advancedSearchActive;
+
+    if (advancedSearchActive) {
+        panel.style.display = 'block';
+        btn.classList.add('active');
+    } else {
+        panel.style.display = 'none';
+        btn.classList.remove('active');
+        resetAdvancedFilters();
+    }
+}
+
+function applyAdvancedFilters() {
+    const manufacturer = document.getElementById('advFilterManufacturer')?.value.toLowerCase() || '';
+    const model = document.getElementById('advFilterModel')?.value.toLowerCase() || '';
+    const ip = document.getElementById('advFilterIP')?.value.toLowerCase() || '';
+    const serial = document.getElementById('advFilterSerial')?.value.toLowerCase() || '';
+    const warrantyBefore = document.getElementById('advFilterWarrantyBefore')?.value || '';
+    const installFrom = document.getElementById('advFilterInstallFrom')?.value || '';
+    const installTo = document.getElementById('advFilterInstallTo')?.value || '';
+    const subLocation = document.getElementById('advFilterSubLocation')?.value || '';
+
+    // Combine with basic filters
+    const typeFilter = document.getElementById('filterType')?.value || '';
+    const statusFilter = document.getElementById('filterStatus')?.value || '';
+    const locationFilter = document.getElementById('filterLocation')?.value || '';
+
+    const results = [];
+
+    appData.locations.forEach(loc => {
+        // Location filter
+        if (locationFilter && loc.id !== locationFilter) return;
+
+        (loc.equipment || []).forEach(eq => {
+            // Basic filters
+            if (typeFilter && eq.type !== typeFilter) return;
+            if (statusFilter && (eq.status || 'Aktivna') !== statusFilter) return;
+
+            // Advanced filters
+            if (manufacturer && !(eq.manufacturer || '').toLowerCase().includes(manufacturer)) return;
+            if (model && !(eq.model || '').toLowerCase().includes(model)) return;
+            if (ip && !(eq.ip || eq.ip_address || '').toLowerCase().includes(ip)) return;
+            if (serial && !(eq.serial_number || '').toLowerCase().includes(serial)) return;
+            if (subLocation && (eq.sub_location || '') !== subLocation) return;
+
+            // Date filters
+            if (warrantyBefore) {
+                const warranty = eq.warrantyDate || eq.warranty_expiry;
+                if (!warranty || new Date(warranty) > new Date(warrantyBefore)) return;
+            }
+
+            if (installFrom) {
+                const install = eq.installDate || eq.installation_date;
+                if (!install || new Date(install) < new Date(installFrom)) return;
+            }
+
+            if (installTo) {
+                const install = eq.installDate || eq.installation_date;
+                if (!install || new Date(install) > new Date(installTo)) return;
+            }
+
+            results.push({
+                equipment: eq,
+                location: loc
+            });
+        });
+    });
+
+    // Update count
+    const countEl = document.getElementById('advFilterCount');
+    if (countEl) {
+        countEl.textContent = results.length;
+    }
+
+    // Display results if there are any active filters
+    const hasFilters = manufacturer || model || ip || serial || warrantyBefore || installFrom || installTo || subLocation || typeFilter || statusFilter || locationFilter;
+
+    if (hasFilters && results.length > 0) {
+        displayAdvancedSearchResults(results);
+    } else if (hasFilters && results.length === 0) {
+        const resultsList = document.getElementById('searchResultsList');
+        const resultsDiv = document.getElementById('searchResults');
+        resultsList.innerHTML = '<p class="no-data">Nema rezultata za zadate filtere</p>';
+        resultsDiv.style.display = 'block';
+    } else {
+        document.getElementById('searchResults').style.display = 'none';
+    }
+}
+
+function displayAdvancedSearchResults(results) {
+    const resultsDiv = document.getElementById('searchResults');
+    const resultsList = document.getElementById('searchResultsList');
+
+    resultsList.innerHTML = results.map(({ equipment: eq, location: loc }) => {
+        const status = eq.status || 'Aktivna';
+        const statusClass = getStatusDotClass(status);
+
+        return `
+            <div class="search-result-item" onclick="showEquipmentDetail('${eq.id}'); currentLocationId='${loc.id}';">
+                <i class="fas fa-microchip"></i>
+                <div class="search-result-info">
+                    <strong>${eq.type} - ${eq.inventoryNumber}</strong>
+                    <span>Lokacija: ${loc.name} ${eq.sub_location ? `(${eq.sub_location})` : ''}</span>
+                    <span class="status-badge status-${statusClass}">${status}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    resultsDiv.style.display = 'block';
+}
+
+function resetAdvancedFilters() {
+    // Reset all advanced filter inputs
+    const inputs = ['advFilterManufacturer', 'advFilterModel', 'advFilterIP', 'advFilterSerial',
+                    'advFilterWarrantyBefore', 'advFilterInstallFrom', 'advFilterInstallTo', 'advFilterSubLocation'];
+
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    // Reset basic filters
+    const basicFilters = ['filterType', 'filterStatus', 'filterLocation'];
+    basicFilters.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    // Update count
+    const countEl = document.getElementById('advFilterCount');
+    if (countEl) countEl.textContent = '0';
+
+    // Hide results
+    document.getElementById('searchResults').style.display = 'none';
+
+    // Refresh dashboard
+    renderDashboard();
 }
 
 // ===== SEARCH & FILTER =====
@@ -924,10 +1535,12 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
 
         const status = eq.status || 'Aktivna';
         const statusClass = getStatusDotClass(status);
+        const statusColor = statusClass === 'active' ? 'success' : statusClass === 'service' ? 'warning' : statusClass === 'broken' ? 'danger' : statusClass === 'inactive' ? 'text-muted' : 'text-muted';
 
         return `
-            <div class="equipment-card" onclick="showEquipmentDetail('${eq.id}')" style="position:relative">
-                <div class="status-indicator-dot" style="background:var(--${statusClass === 'active' ? 'success' : statusClass === 'service' ? 'warning' : statusClass === 'broken' ? 'danger' : 'text-muted'})"></div>
+            <div class="equipment-card" data-id="${eq.id}" onclick="bulkSelectMode ? toggleEquipmentSelect('${eq.id}', event) : showEquipmentDetail('${eq.id}')" style="position:relative">
+                <input type="checkbox" class="bulk-checkbox" onclick="toggleEquipmentSelect('${eq.id}', event)" ${selectedEquipmentIds.has(eq.id) ? 'checked' : ''}>
+                <div class="status-indicator-dot ${statusClass}" style="background:var(--${statusColor})"></div>
                 <div class="equipment-card-image">
                     ${imageHtml}
                 </div>
@@ -937,7 +1550,7 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
                     <div class="equipment-card-info">
                         ${eq.ip ? `<span><i class="fas fa-network-wired"></i> ${eq.ip}</span>` : ''}
                         ${eq.installDate ? `<span><i class="fas fa-calendar"></i> ${formatDate(new Date(eq.installDate))}</span>` : ''}
-                        <span><i class="fas fa-circle" style="color:var(--${statusClass === 'active' ? 'success' : statusClass === 'service' ? 'warning' : statusClass === 'broken' ? 'danger' : 'text-muted'});font-size:8px"></i> ${status}</span>
+                        <span><i class="fas fa-circle" style="color:var(--${statusColor});font-size:8px"></i> ${status}</span>
                     </div>
                 </div>
             </div>

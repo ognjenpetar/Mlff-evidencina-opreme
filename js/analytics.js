@@ -215,7 +215,8 @@ function renderStatusPieChart(statusCounts) {
                     'rgba(0, 255, 136, 0.8)',  // Aktivna - green
                     'rgba(255, 187, 0, 0.8)',  // Na servisu - yellow
                     'rgba(255, 68, 68, 0.8)',  // Neispravna - red
-                    'rgba(136, 136, 136, 0.8)' // Povučena - gray
+                    'rgba(128, 128, 128, 0.8)', // Neaktivna - gray
+                    'rgba(136, 136, 136, 0.8)' // Povučena - dark gray
                 ],
                 borderColor: '#1a1a2e',
                 borderWidth: 2

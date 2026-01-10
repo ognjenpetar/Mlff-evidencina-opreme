@@ -25,6 +25,29 @@
             </div>
             <h1 class="app-title">Evidencija MLFF Opreme</h1>
             <div class="header-actions">
+                <!-- Notifications -->
+                <div class="notifications-wrapper">
+                    <button class="btn btn-icon notification-btn" onclick="toggleNotifications()" title="Obaveštenja">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge" style="display:none">0</span>
+                    </button>
+                    <div class="notifications-dropdown" id="notificationsDropdown" style="display:none">
+                        <div class="notifications-header">
+                            <h4><i class="fas fa-bell"></i> Obaveštenja</h4>
+                            <button class="btn btn-icon btn-small" onclick="markAllNotificationsRead()" title="Označi sve kao pročitano">
+                                <i class="fas fa-check-double"></i>
+                            </button>
+                        </div>
+                        <div class="notifications-list" id="notificationsList">
+                            <p class="no-notifications">Nema novih obaveštenja</p>
+                        </div>
+                        <div class="notifications-footer">
+                            <button class="btn btn-secondary btn-small" onclick="refreshNotifications()">
+                                <i class="fas fa-sync"></i> Osveži
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <!-- Data Status -->
                 <div class="data-status" id="dataStatus" onclick="showHelpModal()">
                     <i class="fas fa-database"></i>
@@ -93,11 +116,69 @@
                                 <option value="Aktivna">Aktivna</option>
                                 <option value="Na servisu">Na servisu</option>
                                 <option value="Neispravna">Neispravna</option>
+                                <option value="Neaktivna">Neaktivna</option>
                                 <option value="Povučena">Povučena</option>
                             </select>
                             <select id="filterLocation" onchange="applyFilters()">
                                 <option value="">Sve lokacije</option>
                             </select>
+                            <button class="btn btn-secondary btn-small" onclick="toggleAdvancedSearch()" id="advancedSearchBtn">
+                                <i class="fas fa-sliders-h"></i> Napredno
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Search Panel -->
+                    <div id="advancedSearchPanel" class="advanced-search-panel" style="display: none;">
+                        <div class="advanced-search-header">
+                            <h4><i class="fas fa-filter"></i> Napredna Pretraga</h4>
+                            <button class="btn btn-icon btn-small" onclick="toggleAdvancedSearch()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="advanced-search-grid">
+                            <div class="filter-group">
+                                <label>Proizvođač</label>
+                                <input type="text" id="advFilterManufacturer" placeholder="npr. Cisco" oninput="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>Model</label>
+                                <input type="text" id="advFilterModel" placeholder="npr. ASR1001" oninput="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>IP Adresa (sadrži)</label>
+                                <input type="text" id="advFilterIP" placeholder="npr. 192.168" oninput="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>Serijski broj</label>
+                                <input type="text" id="advFilterSerial" placeholder="npr. SN123" oninput="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>Garancija ističe do</label>
+                                <input type="date" id="advFilterWarrantyBefore" onchange="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>Instalacija od</label>
+                                <input type="date" id="advFilterInstallFrom" onchange="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>Instalacija do</label>
+                                <input type="date" id="advFilterInstallTo" onchange="applyAdvancedFilters()">
+                            </div>
+                            <div class="filter-group">
+                                <label>Sub-lokacija</label>
+                                <select id="advFilterSubLocation" onchange="applyAdvancedFilters()">
+                                    <option value="">Sve</option>
+                                    <option value="Gentri">Gentri</option>
+                                    <option value="Ormar">Ormar</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="advanced-search-actions">
+                            <button class="btn btn-secondary btn-small" onclick="resetAdvancedFilters()">
+                                <i class="fas fa-undo"></i> Resetuj filtere
+                            </button>
+                            <span class="filter-results-count">Pronađeno: <strong id="advFilterCount">0</strong> rezultata</span>
                         </div>
                     </div>
 
@@ -267,8 +348,34 @@
                                 <option value="Aktivna">Aktivna</option>
                                 <option value="Na servisu">Na servisu</option>
                                 <option value="Neispravna">Neispravna</option>
+                                <option value="Neaktivna">Neaktivna</option>
                                 <option value="Povučena">Povučena</option>
                             </select>
+                            <button class="btn btn-secondary btn-small" onclick="toggleBulkSelectMode()" id="bulkModeBtn" title="Uključi masovne operacije">
+                                <i class="fas fa-check-double"></i> Masovno
+                            </button>
+                        </div>
+
+                        <!-- Bulk Actions Toolbar -->
+                        <div id="bulkActionsToolbar" class="bulk-actions-toolbar" style="display: none;">
+                            <div class="bulk-select-info">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="selectAllEquipment" onchange="toggleSelectAll()">
+                                    <span>Odaberi sve</span>
+                                </label>
+                                <span class="selected-count">Odabrano: <strong id="selectedCount">0</strong></span>
+                            </div>
+                            <div class="bulk-actions">
+                                <button class="btn btn-warning btn-small" onclick="bulkChangeStatus()" title="Promeni status odabranoj opremi">
+                                    <i class="fas fa-exchange-alt"></i> Promeni Status
+                                </button>
+                                <button class="btn btn-danger btn-small" onclick="bulkDelete()" title="Obriši odabranu opremu">
+                                    <i class="fas fa-trash"></i> Obriši
+                                </button>
+                                <button class="btn btn-secondary btn-small" onclick="cancelBulkSelection()" title="Poništi odabir">
+                                    <i class="fas fa-times"></i> Poništi
+                                </button>
+                            </div>
                         </div>
 
                         <div class="equipment-section">
@@ -739,6 +846,7 @@
                                 <option value="Aktivna">Aktivna</option>
                                 <option value="Na servisu">Na servisu</option>
                                 <option value="Neispravna">Neispravna</option>
+                                <option value="Neaktivna">Neaktivna</option>
                                 <option value="Povučena">Povučena</option>
                             </select>
                         </div>
@@ -934,6 +1042,7 @@
                         <option value="Aktivna">Aktivna</option>
                         <option value="Na servisu">Na servisu</option>
                         <option value="Neispravna">Neispravna</option>
+                        <option value="Neaktivna">Neaktivna</option>
                         <option value="Povučena">Povučena</option>
                     </select>
                 </div>
@@ -944,6 +1053,41 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('statusModal')">Otkaži</button>
                     <button type="submit" class="btn btn-primary">Sačuvaj</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Status Change Modal -->
+    <div id="bulkStatusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exchange-alt"></i> Masovna Promena Statusa</h3>
+                <button class="close-btn" onclick="closeModal('bulkStatusModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="bulkStatusForm" onsubmit="executeBulkStatusChange(event)">
+                <p class="bulk-info">Promenićete status za <strong id="bulkStatusCount">0</strong> uređaja.</p>
+                <div class="form-group">
+                    <label for="bulkNewStatus">Novi Status</label>
+                    <select id="bulkNewStatus" required>
+                        <option value="Aktivna">Aktivna</option>
+                        <option value="Na servisu">Na servisu</option>
+                        <option value="Neispravna">Neispravna</option>
+                        <option value="Neaktivna">Neaktivna</option>
+                        <option value="Povučena">Povučena</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bulkStatusReason">Razlog promene</label>
+                    <textarea id="bulkStatusReason" rows="2" placeholder="Unesite razlog promene statusa..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bulkStatusModal')">Otkaži</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-check"></i> Primeni na sve
+                    </button>
                 </div>
             </form>
         </div>

@@ -1549,11 +1549,24 @@ function confirmDeleteLocation(locationId) {
     );
 }
 
-function deleteLocation(locationId) {
-    appData.locations = appData.locations.filter(l => l.id !== locationId);
-    saveData();
-    closeModal('confirmModal');
-    showDashboard();
+async function deleteLocation(locationId) {
+    try {
+        // Delete from Supabase (CASCADE deletes all equipment, documents, maintenance)
+        await SupabaseService.deleteLocation(locationId);
+        console.log('✅ Location deleted from Supabase');
+
+        // Remove from local data
+        appData.locations = appData.locations.filter(l => l.id !== locationId);
+        await saveData();
+
+        closeModal('confirmModal');
+        showDashboard();
+
+        showToast('✅ Lokacija uspešno obrisana!', 'success');
+    } catch (error) {
+        console.error('❌ Error deleting location:', error);
+        alert('Greška pri brisanju lokacije: ' + error.message);
+    }
 }
 
 function deleteCurrentLocation() {
@@ -1989,14 +2002,27 @@ function confirmDeleteEquipment(equipmentId) {
     );
 }
 
-function deleteEquipment(equipmentId) {
+async function deleteEquipment(equipmentId) {
     const location = appData.locations.find(l => l.id === currentLocationId);
     if (!location) return;
 
-    location.equipment = (location.equipment || []).filter(e => e.id !== equipmentId);
-    saveData();
-    closeModal('confirmModal');
-    showLocationDetail(currentLocationId);
+    try {
+        // Delete from Supabase (CASCADE deletes documents, maintenance, audit logs)
+        await SupabaseService.deleteEquipment(equipmentId);
+        console.log('✅ Equipment deleted from Supabase');
+
+        // Remove from local data
+        location.equipment = (location.equipment || []).filter(e => e.id !== equipmentId);
+        await saveData();
+
+        closeModal('confirmModal');
+        showLocationDetail(currentLocationId);
+
+        showToast('✅ Oprema uspešno obrisana!', 'success');
+    } catch (error) {
+        console.error('❌ Error deleting equipment:', error);
+        alert('Greška pri brisanju opreme: ' + error.message);
+    }
 }
 
 function deleteCurrentEquipment() {

@@ -241,8 +241,8 @@ const SupabaseService = {
                     manufacturer: data.manufacturer || null,
                     model: data.model || null,
                     serial_number: data.serialNumber || null,
-                    ip_address: data.ipAddress || null,
-                    mac_address: data.macAddress || null,
+                    ip_address: data.ipAddress ? data.ipAddress : null,  // ✅ Fixed: no empty strings
+                    mac_address: data.macAddress ? data.macAddress : null,  // ✅ Fixed: no empty strings
                     x_coord: parseInt(data.xCoord) || 0,
                     y_coord: parseInt(data.yCoord) || 0,
                     z_coord: parseInt(data.zCoord) || 0,
@@ -295,8 +295,8 @@ const SupabaseService = {
             if (data.manufacturer !== undefined) updateData.manufacturer = data.manufacturer;
             if (data.model !== undefined) updateData.model = data.model;
             if (data.serialNumber !== undefined) updateData.serial_number = data.serialNumber;
-            if (data.ipAddress !== undefined) updateData.ip_address = data.ipAddress;
-            if (data.macAddress !== undefined) updateData.mac_address = data.macAddress;
+            if (data.ipAddress !== undefined) updateData.ip_address = data.ipAddress ? data.ipAddress : null;
+            if (data.macAddress !== undefined) updateData.mac_address = data.macAddress ? data.macAddress : null;
             if (data.xCoord !== undefined) updateData.x_coord = parseInt(data.xCoord);
             if (data.yCoord !== undefined) updateData.y_coord = parseInt(data.yCoord);
             if (data.zCoord !== undefined) updateData.z_coord = parseInt(data.zCoord);

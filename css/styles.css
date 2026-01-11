@@ -2765,8 +2765,301 @@ form {
 }
 
 /* ===== ANALYTICS VIEW ===== */
+.analytics-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 15px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    align-items: flex-end;
+}
+
+.analytics-filters .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+}
+
+.analytics-filters .filter-group label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.analytics-filters .filter-group label i {
+    margin-right: 5px;
+}
+
+.analytics-filters .filter-group select {
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-small);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.analytics-filters .filter-group select:focus {
+    border-color: var(--primary-green);
+    outline: none;
+}
+
 .analytics-content {
     padding: 20px;
+}
+
+/* Secondary KPI Grid */
+.kpi-grid-secondary {
+    margin-top: -15px;
+}
+
+.kpi-card-small {
+    padding: 15px;
+}
+
+.kpi-card-small .kpi-icon {
+    font-size: 1.5rem;
+    width: 45px;
+    height: 45px;
+}
+
+.kpi-card-small .kpi-value {
+    font-size: 1.5rem;
+}
+
+.kpi-card-small .kpi-label {
+    font-size: 0.75rem;
+}
+
+/* Location Analytics */
+.analytics-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-medium);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.analytics-section h3 {
+    margin: 0 0 20px 0;
+    color: var(--primary-green);
+    font-size: 1.1rem;
+}
+
+.location-analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.location-chart {
+    min-height: 300px;
+}
+
+.location-chart h4,
+.location-map-container h4 {
+    margin: 0 0 15px 0;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.location-map-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-small);
+    padding: 15px;
+}
+
+.analytics-map {
+    height: 280px;
+    border-radius: var(--radius-small);
+    overflow: hidden;
+}
+
+.map-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.legend-item .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.legend-item .dot.green {
+    background: var(--primary-green);
+}
+
+.legend-item .dot.yellow {
+    background: #ffbb00;
+}
+
+.legend-item .dot.red {
+    background: #ff4444;
+}
+
+/* Chart Clickable */
+.chart-clickable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chart-clickable:hover {
+    border-color: var(--primary-green);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.15);
+}
+
+.chart-clickable h3 small {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: normal;
+    margin-left: 8px;
+}
+
+/* Drill-down Modal */
+.modal-large {
+    max-width: 900px;
+    width: 90%;
+}
+
+.drilldown-content {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.drilldown-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.drilldown-table th,
+.drilldown-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.drilldown-table th {
+    background: var(--bg-secondary);
+    color: var(--primary-green);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.drilldown-table tr:hover {
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.drilldown-table .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Analytics Map Markers */
+.analytics-marker {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid #fff;
+}
+
+.analytics-marker.green {
+    background: var(--primary-green);
+}
+
+.analytics-marker.orange {
+    background: #ffbb00;
+}
+
+.analytics-marker.red {
+    background: #ff4444;
+}
+
+.analytics-marker-popup {
+    min-width: 150px;
+}
+
+.analytics-marker-popup h4 {
+    margin: 0 0 8px 0;
+    color: var(--primary-green);
+    font-size: 0.9rem;
+}
+
+.analytics-marker-popup p {
+    margin: 4px 0;
+    font-size: 0.8rem;
+}
+
+.analytics-marker-popup .status-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+}
+
+.analytics-marker-popup .status-row span:first-child {
+    color: var(--text-secondary);
+}
+
+/* Leaflet Dark Theme Override */
+.analytics-map .leaflet-popup-content-wrapper {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: var(--radius-small);
+}
+
+.analytics-map .leaflet-popup-tip {
+    background: var(--bg-card);
+}
+
+.analytics-map .leaflet-popup-close-button {
+    color: var(--text-secondary);
+}
+
+.analytics-map .leaflet-popup-close-button:hover {
+    color: var(--primary-green);
+}
+
+@media (max-width: 900px) {
+    .location-analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .analytics-filters .filter-group {
+        min-width: 100%;
+    }
 }
 
 .kpi-grid {

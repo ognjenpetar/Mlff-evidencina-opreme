@@ -668,17 +668,57 @@
                         </button>
                         <h2><i class="fas fa-chart-line"></i> Analitika i Izveštaji</h2>
                         <div class="view-actions">
-                            <button class="btn btn-secondary" onclick="exportToPDF()">
+                            <button class="btn btn-secondary" onclick="exportAnalyticsToPDF()">
                                 <i class="fas fa-file-pdf"></i> PDF Izveštaj
                             </button>
-                            <button class="btn btn-primary" onclick="exportToExcel()">
+                            <button class="btn btn-primary" onclick="exportAnalyticsToExcel()">
                                 <i class="fas fa-file-excel"></i> Excel Export
                             </button>
                         </div>
                     </div>
 
+                    <!-- Analytics Filters -->
+                    <div class="analytics-filters">
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar"></i> Period</label>
+                            <select id="analyticsFilterPeriod" onchange="applyAnalyticsFilters()">
+                                <option value="7">Poslednjih 7 dana</option>
+                                <option value="30" selected>Poslednjih 30 dana</option>
+                                <option value="90">Poslednjih 90 dana</option>
+                                <option value="365">Poslednjih godinu dana</option>
+                                <option value="all">Sve vreme</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Lokacija</label>
+                            <select id="analyticsFilterLocation" onchange="applyAnalyticsFilters()">
+                                <option value="">Sve lokacije</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-microchip"></i> Tip opreme</label>
+                            <select id="analyticsFilterType" onchange="applyAnalyticsFilters()">
+                                <option value="">Svi tipovi</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-info-circle"></i> Status</label>
+                            <select id="analyticsFilterStatus" onchange="applyAnalyticsFilters()">
+                                <option value="">Svi statusi</option>
+                                <option value="Aktivna">Aktivna</option>
+                                <option value="Na servisu">Na servisu</option>
+                                <option value="Neispravna">Neispravna</option>
+                                <option value="Neaktivna">Neaktivna</option>
+                                <option value="Povučena">Povučena</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="resetAnalyticsFilters()">
+                            <i class="fas fa-undo"></i> Resetuj
+                        </button>
+                    </div>
+
                     <div class="analytics-content">
-                        <!-- KPI Cards -->
+                        <!-- KPI Cards - Row 1: Main metrics -->
                         <div class="kpi-grid">
                             <div class="kpi-card">
                                 <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
@@ -704,20 +744,72 @@
                             <div class="kpi-card">
                                 <div class="kpi-icon"><i class="fas fa-euro-sign"></i></div>
                                 <div class="kpi-details">
-                                    <span class="kpi-label">Troškovi Održavanja (Godina)</span>
+                                    <span class="kpi-label">Troškovi Održavanja</span>
                                     <span class="kpi-value" id="kpiMaintenanceCost">€0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI Cards - Row 2: Advanced metrics -->
+                        <div class="kpi-grid kpi-grid-secondary">
+                            <div class="kpi-card kpi-card-small">
+                                <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Dostupnost</span>
+                                    <span class="kpi-value" id="kpiAvailability">0%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card kpi-card-small">
+                                <div class="kpi-icon"><i class="fas fa-shield-alt"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Pod Garancijom</span>
+                                    <span class="kpi-value" id="kpiWarrantyCoverage">0%</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card kpi-card-small">
+                                <div class="kpi-icon"><i class="fas fa-calculator"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Trošak po Uređaju</span>
+                                    <span class="kpi-value" id="kpiCostPerEquipment">€0</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card kpi-card-small">
+                                <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+                                <div class="kpi-details">
+                                    <span class="kpi-label">Prosečna Starost</span>
+                                    <span class="kpi-value" id="kpiAverageAge">0g</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Analytics Section -->
+                        <div class="analytics-section">
+                            <h3><i class="fas fa-map-marked-alt"></i> Analitika po Lokacijama</h3>
+                            <div class="location-analytics-grid">
+                                <div class="chart-container location-chart">
+                                    <h4>Top 10 Lokacija po Broju Opreme</h4>
+                                    <canvas id="locationBarChart"></canvas>
+                                </div>
+                                <div class="location-map-container">
+                                    <h4>Mapa Lokacija</h4>
+                                    <div id="analyticsMap" class="analytics-map"></div>
+                                    <div class="map-legend">
+                                        <span class="legend-item"><span class="dot green"></span> Sve aktivno</span>
+                                        <span class="legend-item"><span class="dot yellow"></span> Ima na servisu</span>
+                                        <span class="legend-item"><span class="dot red"></span> Ima neispravno</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Charts Grid -->
                         <div class="charts-grid">
-                            <div class="chart-container">
-                                <h3><i class="fas fa-chart-pie"></i> Status Opreme</h3>
+                            <div class="chart-container chart-clickable" onclick="drillDownChart('status')">
+                                <h3><i class="fas fa-chart-pie"></i> Status Opreme <small>(klik za detalje)</small></h3>
                                 <canvas id="statusPieChart"></canvas>
                             </div>
-                            <div class="chart-container">
-                                <h3><i class="fas fa-chart-bar"></i> Oprema po Tipu</h3>
+                            <div class="chart-container chart-clickable" onclick="drillDownChart('type')">
+                                <h3><i class="fas fa-chart-bar"></i> Oprema po Tipu <small>(klik za detalje)</small></h3>
                                 <canvas id="typeBarChart"></canvas>
                             </div>
                             <div class="chart-container">
@@ -747,6 +839,21 @@
                                     <!-- Populated by JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- Drill-down Modal -->
+                    <div id="drillDownModal" class="modal">
+                        <div class="modal-content modal-large">
+                            <div class="modal-header">
+                                <h3 id="drillDownTitle"><i class="fas fa-list"></i> Detalji</h3>
+                                <button class="btn btn-icon" onclick="closeModal('drillDownModal')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="drilldown-content" id="drillDownContent">
+                                <!-- Populated by JS -->
+                            </div>
                         </div>
                     </div>
                 </div>

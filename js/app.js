@@ -61,6 +61,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Migrate LocalStorage data to Supabase (one-time operation)
     await migrateLocalStorageToSupabase();
 
+    // Load data from Supabase (replaces LocalStorage data with Supabase data)
+    await loadDataFromSupabase();
+
     // Initialize maintenance notifications
     initMaintenanceNotifications();
 });
@@ -251,6 +254,34 @@ async function migrateLocalStorageToSupabase() {
     } catch (error) {
         console.error('❌ Migration error:', error);
         showToast('Greška pri migraciji podataka. Proverite konzolu za detalje.', 'error');
+    }
+}
+
+// Load data from Supabase (replaces LocalStorage data)
+async function loadDataFromSupabase() {
+    try {
+        console.log('🔄 Loading data from Supabase...');
+
+        // Fetch all locations
+        const locations = await SupabaseService.getLocations();
+
+        // Fetch all equipment for each location
+        for (const location of locations) {
+            const equipment = await SupabaseService.getEquipment(location.id);
+            location.equipment = equipment;
+        }
+
+        // Replace appData with Supabase data
+        appData.locations = locations;
+        appData.lastModified = new Date().toISOString();
+
+        console.log(`✅ Loaded ${locations.length} locations from Supabase`);
+
+        // Update UI
+        renderDashboard();
+    } catch (error) {
+        console.error('❌ Error loading data from Supabase:', error);
+        showToast('Greška pri učitavanju podataka iz Supabase.', 'error');
     }
 }
 
@@ -1574,7 +1605,7 @@ function deleteCurrentLocation() {
 }
 
 // ===== EQUIPMENT CRUD =====
-function showAddEquipmentModal() {
+function showAddEquipmentModal(subLocation = null) {
     document.getElementById('equipmentModalTitle').textContent = 'Dodaj Opremu';
     document.getElementById('equipmentForm').reset();
     document.getElementById('equipmentId').value = '';
@@ -1582,6 +1613,14 @@ function showAddEquipmentModal() {
     document.getElementById('eqFormStatus').value = 'Aktivna';
     document.getElementById('eqPhotoPreview').innerHTML = '';
     document.getElementById('eqDocsPreview').innerHTML = '';
+
+    // Pre-select sub-location if provided (Gentri or Ormar)
+    if (subLocation) {
+        document.getElementById('eqFormSubLocation').value = subLocation;
+        // Trigger the change event to update equipment type options
+        updateEquipmentTypeOptions();
+    }
+
     openModal('equipmentModal');
 }
 

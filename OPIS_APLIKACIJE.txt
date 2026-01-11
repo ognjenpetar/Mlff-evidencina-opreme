@@ -1,13 +1,14 @@
 ================================================================================
                     EVIDENCIJA MLFF OPREME - DETALJAN OPIS
                            Orion E-mobility
+                        Verzija 5.0 - Januar 2026
 ================================================================================
 
 SVRHA APLIKACIJE:
 -----------------
-Lokalna web aplikacija za evidenciju i praćenje opreme na MLFF (Multi-Lane
-Free-Flow) naplatnim portalima. Aplikacija omogućava kompletno upravljanje
-lokacijama i opremom bez potrebe za internet konekcijom ili serverom.
+Web aplikacija za evidenciju i praćenje opreme na MLFF (Multi-Lane Free-Flow)
+naplatnim portalima. Koristi Supabase cloud backend za neograničen kapacitet
+podataka i pristup sa bilo kog uređaja.
 
 
 GLAVNE FUNKCIONALNOSTI:
@@ -17,231 +18,257 @@ GLAVNE FUNKCIONALNOSTI:
 -------------------------
 - Dodavanje novih lokacija (naplatni portali)
 - Unos GPS koordinata (latitude/longitude)
-- Upload fotografije lokacije
+- Upload fotografije lokacije (do 50MB)
 - Opis lokacije
-- Pregled svih lokacija na dashboard-u
+- Pregled svih lokacija na interaktivnoj mapi
 - Izmena i brisanje lokacija
 
 2. EVIDENCIJA OPREME
 --------------------
 Svaki komad opreme ima sledeće podatke:
 - Tip opreme (VDX, VRX, Antena, Switch, TRC, TRM, intel, jetson, Wi-FI)
-  * Predefinisani tipovi su: VDX, VRX, Antena, Switch, TRC, TRM, intel, jetson, Wi-FI
-  * Mogućnost unosa custom tipova - uneti naziv se pamti i nudi u padajućem meniju
-  * Svi prethodno uneti custom tipovi se čuvaju i nude kao opcije
+  * Predefinisani tipovi + mogućnost unosa custom tipova
 - Inventarski broj (jedinstvena oznaka)
-- Status (Aktivna, Na servisu, Neispravna, Povučena)
-- IP adresa
-- MAC adresa
-- X/Y/Z koordinate u centimetrima (pozicija na portalu)
+- Status: Aktivna, Na servisu, Neispravna, Neaktivna, Povučena
+- Sub-lokacija: Gentri ili Ormar
+- Proizvođač i Model
+- Serijski broj
+- IP adresa i MAC adresa
+- X/Y/Z koordinate u centimetrima
 - Datum postavljanja
 - Datum isteka garancije
-- Ime instalatera
-- Ime testera
-- Fotografija opreme
-- Dodatna dokumentacija (upload PDF dokumenata - mogućnost dodavanja više fajlova)
-  * Podržani formati: PDF
-  * Mogućnost dodavanja više PDF dokumenata odjednom
-  * Vizuelni prikaz sa ikonom za PDF fajlove
-  * Preuzimanje i brisanje dokumenata
+- Ime instalatera i testera
+- Fotografija opreme (do 50MB)
+- PDF dokumentacija (neograničen broj fajlova, do 50MB po fajlu)
 - Napomene
 
-3. QR KOD SISTEM
-----------------
-- Automatski generisan QR kod za svaki komad opreme
-- QR kod sadrži URL koji vodi direktno do kompletnog prikaza opreme
-- Skeniranjem QR koda automatski se otvara aplikacija sa svim podacima:
-  * Lokacija i GPS koordinate
-  * Sve tehničke specifikacije (IP, MAC, pozicija)
-  * Ko je montirao i testirao
-  * Datum instalacije i garancija
-  * PDF dokumentacija
-  * Servisna istorija
-  * Kompletan audit log
-- Štampanje nalepnica sa QR kodom i osnovnim podacima
-- Preuzimanje QR koda kao PNG slike
+3. BULK OPERACIJE (NOVO u v5.0)
+-------------------------------
+- Masovna selekcija opreme (checkbox-ovi)
+- Masovna promena statusa više komada odjednom
+- Masovno brisanje opreme
+- Toolbar sa bulk akcijama
 
-4. NAVIGACIJA I STRUKTURA
--------------------------
-- Breadcrumb navigacija (Dashboard > Lokacija > Oprema)
-- Bočni panel sa hijerarhijskim prikazom strukture
-- Status indikatori u strukturi (zeleno=aktivna, žuto=servis, crveno=neispravna)
-- Brzi pristup bilo kojoj opremi kroz strukturno stablo
-
-5. PRETRAGA I FILTRIRANJE
--------------------------
-- Globalna pretraga po inventarskim brojevima, tipu, IP/MAC adresi, imenima
+4. NAPREDNA PRETRAGA (NOVO u v5.0)
+----------------------------------
+- Filter po lokaciji
 - Filter po tipu opreme
 - Filter po statusu
-- Filter po lokaciji
-- Pretraga unutar pojedinačne lokacije
+- Filter po sub-lokaciji
+- Filter po proizvođaču
+- Filter po datumu instalacije (od-do)
+- Filter po datumu isteka garancije (od-do)
+- Kombinovanje više filtera
 
-6. PRAĆENJE STATUSA
--------------------
-Četiri statusa opreme:
-- AKTIVNA - oprema radi normalno
-- NA SERVISU - oprema je na popravci/održavanju
-- NEISPRAVNA - oprema ne funkcioniše
-- POVUČENA - oprema je trajno uklonjena iz upotrebe
-
-Promena statusa se beleži sa razlogom promene.
-
-7. ISTORIJA PROMENA (AUDIT LOG)
--------------------------------
-- Automatsko beleženje svih promena na opremi
-- Datum i vreme svake promene
-- Tip akcije (kreiranje, izmena, promena statusa, servis)
-- Detalji promene
-- Chronološki prikaz istorije
-
-8. MODUL ZA ODRŽAVANJE/SERVIS
+5. NOTIFIKACIJE (NOVO u v5.0)
 -----------------------------
-Evidencija servisnih intervencija:
-- Tip servisa (Preventivni, Korektivni, Inspekcija, Zamena dela, Kalibracija)
-- Datum servisa
-- Ime servisera
-- Opis izvršenih radova
-- Troškovi (RSD)
-- Datum sledećeg planiranog servisa
+- Upozorenja za istek garancije (30 dana unapred)
+- Upozorenja za planirano održavanje (7 dana unapred)
+- Upozorenja za opremu koja je predugo na servisu (14+ dana)
+- Badge sa brojem aktivnih notifikacija
+- Dropdown lista sa detaljima
 
-9. IZVEŠTAJI I ŠTAMPANJE
-------------------------
-- Print izveštaja za pojedinačnu opremu
-- Print izveštaja za celu lokaciju sa listom opreme
-- Pregled garancija koje uskoro ističu
-- Štampanje QR nalepnica
+6. QR KOD SISTEM
+----------------
+- Automatski generisan QR kod za svaki komad opreme
+- QR kod sa MLFF logom
+- Skeniranjem se otvara kompletan izveštaj bez prijave
+- Štampanje nalepnica sa QR kodom
+- Preuzimanje QR koda kao PNG slike
 
-10. DASHBOARD STATISTIKA
-------------------------
-- Ukupan broj lokacija
+7. ANALITIKA I DASHBOARD (PROŠIRENO u v5.0)
+-------------------------------------------
+Osnovni KPI-jevi:
 - Ukupan broj opreme
 - Broj aktivne opreme
 - Broj opreme na servisu
-- Garancije koje ističu (30 dana)
-- Lista opreme po tipu
-- Nedavne aktivnosti
-- Poslednji unos
+- Ukupni troškovi održavanja
 
-11. INTERAKTIVNA MAPA LOKACIJA
--------------------------------
-- OpenStreetMap podloga
-- Prikaz svih lokacija sa markerima
-- Broj opreme prikazan na svakom markeru
-- Popup sa osnovnim informacijama:
-  * Naziv lokacije
-  * GPS koordinate
-  * Opis lokacije
-  * Broj opreme
-  * Direktan link ka detaljima
-- Automatski zoom i fitovanje svih lokacija
-- Toggle prikaz (mapa / grid lista)
-- Responsive dizajn
+Napredni KPI-jevi (NOVO):
+- Dostupnost (% aktivne opreme)
+- Garancijska pokrivenost (% pod garancijom)
+- Trošak po opremi (prosečan)
+- Prosečna starost opreme
+
+Dashboard filteri (NOVO):
+- Period (7, 30, 90, 365 dana)
+- Lokacija
+- Tip opreme
+- Status
+
+Grafikoni:
+- Status Pie Chart (sa drill-down)
+- Type Bar Chart (sa drill-down)
+- Cost Trend Line Chart
+- Age Distribution Chart
+- Location Bar Chart (stacked)
+
+Lokacijska analitika (NOVO):
+- Interaktivna mapa sa markerima
+- Boja markera po statusu opreme
+- Popup sa detaljima lokacije
+
+Export (NOVO):
+- Export u PDF
+- Export u Excel
+
+8. NAVIGACIJA I STRUKTURA
+-------------------------
+- Breadcrumb navigacija
+- Bočni panel sa hijerarhijskim prikazom
+- Status indikatori (zeleno=aktivna, žuto=servis, crveno=neispravna, sivo=neaktivna)
+- Hash-based routing za shareable URL-ove
+
+9. PRETRAGA I FILTRIRANJE
+-------------------------
+- Globalna pretraga
+- Filter po tipu, statusu, lokaciji
+- Instant rezultati
+
+10. PRAĆENJE STATUSA
+--------------------
+Pet statusa opreme:
+- AKTIVNA - oprema radi normalno (zelena)
+- NA SERVISU - oprema je na popravci/održavanju (žuta)
+- NEISPRAVNA - oprema ne funkcioniše (crvena)
+- NEAKTIVNA - privremeno van upotrebe (siva) - NOVO u v5.0
+- POVUČENA - trajno uklonjena iz upotrebe (tamno siva)
+
+11. ISTORIJA PROMENA (AUDIT LOG)
+--------------------------------
+- Automatsko beleženje svih promena
+- Stare i nove vrednosti
+- Datum, vreme i korisnik
+- Ime polja koje je promenjeno
+
+12. MODUL ZA ODRŽAVANJE/SERVIS
+------------------------------
+- Tip servisa (Preventivni, Korektivni, Inspekcija, Zamena dela, Kalibracija)
+- Datum servisa
+- Ime servisera
+- Opis radova
+- Troškovi (EUR)
+- Datum sledećeg servisa
+
+13. IZVEŠTAJI I ŠTAMPANJE
+-------------------------
+- Print izveštaja za opremu
+- Print izveštaja za lokaciju
+- In-app preview izveštaja
 
 
-ČUVANJE PODATAKA:
-=================
+TEHNIČKA ARHITEKTURA:
+=====================
 
-LOKALNO ČUVANJE (LocalStorage):
-- Svi podaci se čuvaju u browser-u
-- Podaci ostaju nakon zatvaranja browser-a
-- Podaci ostaju nakon restarta računara
-- Kapacitet: ~5-10MB (dovoljno za hiljade unosa)
-- Custom tipovi opreme se čuvaju odvojeno i automatski učitavaju pri pokretanju
+FRONTEND:
+- HTML5, CSS3, JavaScript (ES6+)
+- Single Page Application (SPA)
+- Leaflet.js za mape
+- Chart.js za grafikone
+- QRCode.js za QR kodove
+- Font Awesome za ikone
+- Vite za build
 
-BACKUP SISTEM:
-- Export svih podataka u JSON fajl
-- Import podataka iz JSON backup-a
-- Podsetnik za backup (svakih 7 dana)
-- Status čuvanja u header-u
+BACKEND:
+- Supabase (PostgreSQL + Storage + Auth)
+- Row Level Security (RLS)
+- Google OAuth autentifikacija
 
-UPOZORENJE - Podaci se mogu izgubiti ako:
-- Obrišete browser podatke/cache
-- Koristite Incognito/Private mode
-- Pređete na drugi browser
-- Reinstalirate browser
+HOSTING:
+- GitHub Pages (besplatno)
+- Unlimited bandwidth
 
-PREPORUKA: Redovno pravite backup i čuvajte ga na sigurnom mestu
-(USB, cloud, email).
-
-
-TEHNIČKA SPECIFIKACIJA:
-=======================
-
-TEHNOLOGIJE:
-- HTML5
-- CSS3 (responsive dizajn)
-- JavaScript (vanilla, bez framework-a)
-- LocalStorage API
-- QRCode.js biblioteka
-- Leaflet.js (OpenStreetMap integracija)
-- Font Awesome ikone
-
-DIZAJN:
-- Crno-zelena tema
-- Visok kontrast za čitljivost
-- Responsive layout (desktop, tablet, mobilni)
-- Print-optimizovani stilovi
-
-KOMPATIBILNOST:
-- Chrome, Firefox, Edge, Safari (moderni browseri)
-- Desktop i mobilni uređaji
-- Radi offline (bez internet konekcije)
+CLOUD STORAGE:
+- Supabase Storage (1GB besplatno)
+- Do 50MB po fajlu
+- Public URL-ovi za fajlove
 
 
 STRUKTURA FAJLOVA:
 ==================
 
 /Mlff-evidencina-opreme/
-├── index.html          # Glavna HTML stranica
+├── index.html                  # Glavna aplikacija
+├── migration.html              # Migracija podataka
 ├── css/
-│   └── styles.css      # Svi stilovi
+│   └── styles.css              # Stilovi
 ├── js/
-│   └── app.js          # Kompletna aplikaciona logika
-└── OPIS_APLIKACIJE.txt # Ovaj fajl
+│   ├── supabase-config.js      # Supabase konfiguracija
+│   ├── supabase-service.js     # API servis
+│   ├── router.js               # SPA routing
+│   ├── app.js                  # Glavna logika
+│   └── analytics.js            # Analitika
+├── supabase/
+│   └── migrations/             # SQL migracije
+├── README.md                   # Glavni opis
+├── SUPABASE_SETUP.md           # Uputstvo za Supabase
+├── DEPLOYMENT.md               # Deployment vodič
+├── BACKEND_GUIDE.md            # Tehnička dokumentacija
+├── UPUTSTVO_ZA_KORISCENJE.md   # Korisničko uputstvo
+└── OPIS_APLIKACIJE.txt         # Ovaj fajl
 
 
-KAKO KORISTITI:
+KAKO POKRENUTI:
 ===============
 
-1. POKRETANJE:
-   - Otvorite index.html u web browser-u
-   - Aplikacija se pokreće lokalno, bez servera
+1. SUPABASE SETUP:
+   - Kreiraj projekat na https://supabase.com
+   - Pokreni SQL migracije iz supabase/migrations/ folder
+   - Konfiguriši Google OAuth
+   - Kopiraj API credentials
 
-2. DODAVANJE LOKACIJE:
-   - Kliknite "Dodaj Lokaciju" na dashboard-u
-   - Unesite naziv, koordinate, opis
-   - Opciono: dodajte fotografiju
-   - Sačuvajte
+2. LOKALNI DEVELOPMENT:
+   npm install
+   cp .env.example .env
+   # Popuni .env sa Supabase credentials
+   npm run dev
 
-3. DODAVANJE OPREME:
-   - Otvorite lokaciju
-   - Kliknite "Dodaj Opremu"
-   - Popunite OBAVEZNA polja: Inventarski broj i Tip opreme
-   - Opciono: dodajte ostale podatke (IP, MAC, poziciju, fotografiju, PDF-ove)
-   - Sačuvajte
+3. PRODUCTION BUILD:
+   npm run build
+   # Output: dist/ folder
 
-4. QR KODOVI:
-   - Otvorite detalje opreme
-   - Kliknite "QR Kod" dugme
-   - Štampajte ili preuzmite
+4. DEPLOYMENT:
+   Push na GitHub → GitHub Pages automatski hostuje
 
-5. MAPA LOKACIJA:
-   - Kliknite "Prikaži Mapu" na dashboard-u
-   - Vidite sve lokacije na OpenStreetMap-u
-   - Kliknite na marker za detalje
-   - "Otvori Detalje" vodi direktno na lokaciju
 
-6. PRETRAGA:
-   - Koristite search bar na vrhu dashboard-a
-   - Ili koristite filtere za tip/status/lokaciju
+VERZIJE:
+========
 
-7. BACKUP:
-   - Kliknite ikonu za download u header-u
-   - Sačuvajte JSON fajl na sigurno mesto
+Verzija 5.0 - Enhanced Analytics Edition (Januar 2026)
+------------------------------------------------------
++ Bulk operacije (masovna promena statusa, brisanje)
++ Napredna pretraga sa 8+ filtera
++ Notifikacije (garancija, održavanje, servis)
++ Status "Neaktivna"
++ Interaktivni dashboard sa filterima
++ Lokacijska analitika sa mapom
++ Napredni KPI-jevi
++ Drill-down analitika
++ Export u PDF/Excel
 
-8. VRAĆANJE PODATAKA:
-   - Kliknite ikonu za upload u header-u
-   - Izaberite prethodno sačuvani JSON fajl
+Verzija 4.0 - Enhanced Edition (Decembar 2025)
+----------------------------------------------
++ Sub-lokacije (Gentri/Ormar)
++ QR kodovi sa logom
++ Proširena polja opreme
++ Enhanced audit log
+
+Verzija 3.0 - Supabase Edition
+------------------------------
++ Migracija sa Firebase na Supabase
++ PostgreSQL database
++ GitHub Pages hosting
+
+Verzija 2.0 - Firebase Backend
+------------------------------
++ Cloud database (Firestore)
++ Firebase Storage
++ Firebase Auth
+
+Verzija 1.x - LocalStorage
+--------------------------
++ Offline-first dizajn
++ Browser-based storage
 
 
 BRENDING:
@@ -254,94 +281,6 @@ BRENDING:
 
 
 ================================================================================
-IZMENE I AŽURIRANJA:
-====================
-
-Verzija 1.3 - "Web Deployment Edition" - Decembar 2025
--------------------------------------------------------
-+ POTPUNO REFAKTORISAN UPLOAD SISTEM DOKUMENATA
-  - Ispravljen prikaz dokumenata pri editovanju opreme
-  - Dokumenti se sada prikazuju u preview-u tokom edit-a
-  - Mogućnost uklanjanja postojećih dokumenata
-  - Bulk upload funkcionalnost (više dokumenata odjednom)
-  - Validacija fajlova (tip, veličina - max 10MB po fajlu)
-  - Progress bar za upload više dokumenata
-  - Automatsko beleženje u audit log
-  - Poboljšana error handling sa jasnim porukama
-  - Deduplikacija i praćenje dokumenata
-  - 10 kritičnih bugova ispravljeno
-
-+ HOVER PREVIEW DOKUMENATA
-  - Hover nad dokumentom prikazuje veliki preview
-  - Scroll funkcionalnost kroz PDF dokumente
-  - Preview radi i za slike
-  - Responsive dizajn (desktop i mobile)
-  - Stilizovan scrollbar
-
-+ SUB-PAGE ARHITEKTURA (SPA Router)
-  - URL routing sistem za shareable linkove
-  - Svaka lokacija ima svoj URL: /#/location/[id]
-  - Svaka oprema ima svoj URL: /#/equipment/[id]
-  - QR kodovi sada vode na sub-page opreme
-  - Browser back/forward podrška
-  - Direktan pristup putem URL-a
-
-+ IN-APP REPORT PREVIEW
-  - "Prikaži Izveštaj" dugme za lokacije i opremu
-  - Izveštaji se prikazuju u aplikaciji bez downloada
-  - Štampanje i dalje dostupno
-  - Responsive dizajn za mobilne uređaje
-
-+ WEB DEPLOYMENT READY
-  - GitHub Pages kompatibilno
-  - Netlify/Vercel/Cloudflare Pages podržano
-  - Firebase Hosting podržano
-  - Radi i lokalno i na webu
-  - DEPLOYMENT.md sa detaljnim instrukcijama
-  - Multi-environment support
-  - Hash-based routing za static hosting
-
-+ TEHNIČKA POBOLJŠANJA
-  - router.js - lightweight SPA router (<100 lines)
-  - Poboljšana navigacija između view-ova
-  - Optimizovana file validacija
-  - Async file processing sa progress tracking
-  - Better error handling throughout
-
-Verzija 1.2 - Decembar 2025
-----------------------------
-+ INTERAKTIVNA MAPA sa OpenStreetMap podlogom
-  - Vizuelni prikaz svih lokacija na mapi
-  - Markeri sa brojem opreme
-  - Popup sa osnovnim informacijama i direktnim linkom
-  - Automatski zoom i centriranje na lokacije
-  - Responsive prikaz (600px desktop, 400px mobile)
-+ UPLOAD PDF DOKUMENATA U FORMI ZA OPREMU
-  - Mogućnost dodavanja PDF-ova tokom kreiranja opreme
-  - Preview liste dokumenata sa veličinom fajla
-  - Podržava multiple upload
-+ POJEDNOSTAVLJENO DODAVANJE OPREME
-  - Samo 2 obavezna polja: Inventarski broj i Tip opreme
-  - Datum postavljanja više nije obavezan
-+ POBOLJŠAN QR KOD SISTEM
-  - QR kod sada generiše URL do opreme
-  - Skeniranjem se automatski otvara kompletan prikaz opreme
-  - Svi podaci vidljivi nakon skeniranja (ceo report)
-
-Verzija 1.1 - Decembar 2025
-----------------------------
-+ Dodati predefinisani tipovi opreme: VDX, VRX, Antena, Switch, TRC, TRM,
-  intel, jetson, Wi-FI
-+ Mogućnost unosa custom tipova opreme sa automatskim pamćenjem
-+ Poboljšana podrška za PDF dokumente:
-  - Accept filter za PDF fajlove
-  - Ikona za PDF dokumente (fa-file-pdf)
-  - Jasna indikacija "Dodaj Dokumentaciju (PDF)"
-+ "Orion" tekst sada je ljubičaste boje (#a855f7)
-+ Filter tipova opreme dinamički popunjava sve tipove koji su u upotrebi
-+ Custom tipovi se čuvaju u LocalStorage (mlff_custom_types)
-
-================================================================================
-                              Verzija 1.0
-                           Decembar 2025
+                    Verzija 5.0 - Enhanced Analytics Edition
+                              Januar 2026
 ================================================================================

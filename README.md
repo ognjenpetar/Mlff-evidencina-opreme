@@ -1,54 +1,119 @@
 # MLFF Equipment Tracking System
 
-**Version 4.0 - Enhanced Edition** | [Orion E-mobility](https://github.com/ognjenpetar/mlff-equipment-tracking)
+**Version 5.0 - Enhanced Analytics Edition** | [Orion E-mobility](https://github.com/ognjenpetar/Mlff-evidencina-opreme)
 
-A modern web application for tracking and managing MLFF (Medium-Large Fiber Facility) equipment installations with GPS coordinates, QR codes with logo, maintenance history, and document management.
+Moderna web aplikacija za evidenciju i praćenje MLFF (Multi-Lane Free-Flow) opreme na naplatnim portalima. Uključuje GPS lokacije, QR kodove sa logom, istoriju održavanja, upravljanje dokumentima, naprednu analitiku i interaktivne dashboarde.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-4.0-green.svg)
+![Version](https://img.shields.io/badge/version-5.0-green.svg)
 ![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
 
 ---
 
-## 🎯 Features
+## Funkcionalnosti
 
-### Core Functionality
-- ✅ **Location Management** - Track installation sites with GPS coordinates and interactive maps
-- ✅ **Equipment Tracking** - Complete inventory with technical specs, photos, and status
-- ✅ **QR Code with Logo** - Branded QR codes with MLFF logo overlay for instant equipment access
-- ✅ **Sub-Location Categorization** - Organize equipment by cabinet type (Gentri/Ormar)
-- ✅ **Extended Equipment Fields** - Track manufacturer, model, and serial number
-- ✅ **Document Management** - Upload and store PDFs (manuals, certificates, specs) up to 50MB
-- ✅ **Maintenance History** - Track service records, costs, and upcoming maintenance
-- ✅ **Enhanced Audit Logging** - Detailed change tracking with old/new value comparison
-- ✅ **Custom Equipment Types** - Add your own equipment categories
-- ✅ **Search & Filter** - Fast search by inventory number, type, status, or location
+### Osnovno
+- **Upravljanje Lokacijama** - Praćenje lokacija sa GPS koordinatama i interaktivnim mapama
+- **Evidencija Opreme** - Kompletan inventar sa tehničkim specifikacijama, fotografijama i statusom
+- **QR Kodovi sa Logom** - Brendirani QR kodovi sa MLFF logom za brzi pristup opremi
+- **Sub-Lokacije** - Organizacija opreme po tipu kabineta (Gentri/Ormar)
+- **Upravljanje Dokumentima** - Upload PDF dokumenata (priručnici, sertifikati) do 50MB
+- **Istorija Održavanja** - Praćenje servisa, troškova i planiranih održavanja
+- **Audit Log** - Detaljna evidencija promena sa starim/novim vrednostima
 
-### Technical Features
-- 🌐 **Cloud Database** - Supabase PostgreSQL (unlimited capacity vs LocalStorage 5-10MB)
-- 📦 **Cloud Storage** - Supabase Storage (1GB free, up to 50MB per file)
-- 🔐 **Authentication** - Google OAuth via Supabase Auth
-- 🌍 **Public QR Access** - Equipment reports visible without login
-- 🚀 **GitHub Pages Hosting** - Free unlimited bandwidth
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
-- 🗺️ **Interactive Maps** - OpenStreetMap integration with location markers
-- 🔍 **Full-Text Search** - PostgreSQL GIN indexes for instant search
+### Napredne Funkcionalnosti (v5.0)
+- **Bulk Operacije** - Masovna promena statusa i brisanje više komada opreme odjednom
+- **Napredna Pretraga** - Filtriranje po 8+ kriterijuma uključujući datumske opsege
+- **Notifikacije** - Upozorenja za istek garancije, planirano održavanje i opremu na servisu
+- **Status "Neaktivna"** - Novi status za privremeno neaktivnu opremu
+- **Interaktivni Dashboard** - Filteri po periodu, lokaciji, tipu i statusu
+- **Lokacijska Analitika** - Stacked bar chart i interaktivna mapa sa markerima
+- **Napredni KPI-jevi** - Dostupnost, garancijska pokrivenost, prosečna starost, trošak po opremi
+- **Drill-Down Analitika** - Klik na chart za detaljan pregled podataka
+- **Export** - Izvoz analitike u PDF i Excel format
+
+### Tehničke Karakteristike
+- **Cloud Database** - Supabase PostgreSQL (neograničen kapacitet)
+- **Cloud Storage** - Supabase Storage (1GB besplatno, do 50MB po fajlu)
+- **Autentifikacija** - Google OAuth putem Supabase Auth
+- **Javni QR Pristup** - Izveštaji opreme dostupni bez prijave
+- **GitHub Pages Hosting** - Besplatno, neograničen bandwidth
+- **Responsive Dizajn** - Radi na desktop, tablet i mobilnim uređajima
+- **Interaktivne Mape** - OpenStreetMap integracija sa Leaflet.js
+- **Full-Text Pretraga** - PostgreSQL GIN indeksi za instant pretragu
 
 ---
 
-## 🏗️ Architecture
+## Brzi Početak
+
+### 1. Preduslovi
+- [Supabase nalog](https://supabase.com) (besplatan)
+- [GitHub nalog](https://github.com) (za hosting)
+- [Google Cloud nalog](https://console.cloud.google.com) (za OAuth)
+
+### 2. Supabase Setup
+
+```bash
+# 1. Kreiraj Supabase projekat na https://supabase.com
+# 2. Pokreni SQL migracije u SQL Editor-u (redom):
+supabase/migrations/001_initial_schema.sql
+supabase/migrations/002_rls_policies.sql
+supabase/migrations/003_indexes.sql
+supabase/migrations/004_storage_setup.sql
+# ... i ostale migracije (vidi SUPABASE_SETUP.md)
+```
+
+### 3. Lokalni Development
+
+```bash
+# Kloniraj repo
+git clone https://github.com/ognjenpetar/Mlff-evidencina-opreme.git
+cd Mlff-evidencina-opreme
+
+# Instaliraj dependencies
+npm install
+
+# Kreiraj .env fajl
+cp .env.example .env
+# Popuni VITE_SUPABASE_URL i VITE_SUPABASE_ANON_KEY
+
+# Pokreni dev server
+npm run dev
+```
+
+### 4. Production Build
+
+```bash
+npm run build
+# Output: dist/ folder
+```
+
+---
+
+## Dokumentacija
+
+| Dokument | Opis |
+|----------|------|
+| [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Kompletno uputstvo za Supabase (migracije, storage, OAuth) |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment na GitHub Pages, Netlify, Vercel |
+| [BACKEND_GUIDE.md](BACKEND_GUIDE.md) | Tehnička dokumentacija (schema, API, security) |
+| [UPUTSTVO_ZA_KORISCENJE.md](UPUTSTVO_ZA_KORISCENJE.md) | Korisničko uputstvo na srpskom |
+
+---
+
+## Arhitektura
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    USER INTERFACE (SPA)                     │
+│                    FRONTEND (SPA)                           │
 │  index.html + CSS + JavaScript (Hash-based routing)         │
 └─────────────────────────────────────────────────────────────┘
                             │
                             │ HTTPS
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   GITHUB PAGES HOSTING                      │
-│  Static files (HTML, CSS, JS) - Free unlimited bandwidth     │
+│                   GITHUB PAGES                              │
+│  Static files (HTML, CSS, JS) - Besplatan hosting           │
 └─────────────────────────────────────────────────────────────┘
                             │
                             │ Supabase JS SDK
@@ -57,431 +122,136 @@ A modern web application for tracking and managing MLFF (Medium-Large Fiber Faci
 │                    SUPABASE BACKEND                         │
 │  ┌────────────────┐  ┌────────────────┐  ┌───────────────┐ │
 │  │   PostgreSQL   │  │    Storage     │  │     Auth      │ │
-│  │   (Database)   │  │   (Files)      │  │  (Google)     │ │
+│  │   (Database)   │  │   (Fajlovi)    │  │  (Google)     │ │
 │  │                │  │                │  │               │ │
-│  │ - locations    │  │ - Photos       │  │ - User mgmt   │ │
-│  │ - equipment    │  │ - Documents    │  │ - OAuth       │ │
-│  │ - documents    │  │ (50MB max)     │  │ - Sessions    │ │
+│  │ - locations    │  │ - Photos       │  │ - OAuth       │ │
+│  │ - equipment    │  │ - Documents    │  │ - Sessions    │ │
+│  │ - documents    │  │ (50MB max)     │  │ - JWT tokens  │ │
 │  │ - maintenance  │  │                │  │               │ │
-│  │ - audit_log    │  │ Public URLs    │  │ JWT tokens    │ │
+│  │ - audit_log    │  │ Public URLs    │  │               │ │
 │  └────────────────┘  └────────────────┘  └───────────────┘ │
 │                                                             │
 │  Row Level Security (RLS):                                 │
-│  ✅ Public READ (QR codes work without login)              │
-│  🔒 Authenticated WRITE (admin only)                       │
+│  ✅ Public READ (QR kodovi rade bez login-a)               │
+│  🔒 Authenticated WRITE (samo admin)                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Data Flow:**
-1. User opens `https://ognjenpetar.github.io/mlff-equipment-tracking/`
-2. GitHub Pages serves static HTML/CSS/JS files
-3. Browser loads Supabase SDK and connects to database
-4. User can view data (public) or login to modify (authenticated)
-5. QR codes link directly to equipment reports (public access)
-
 ---
 
-## 🚀 Quick Start
-
-### 1. Prerequisites
-- [Supabase account](https://supabase.com) (free tier)
-- [GitHub account](https://github.com) (for hosting)
-- [Google Cloud account](https://console.cloud.google.com) (for OAuth)
-
-### 2. Setup Supabase
-
-```bash
-# 1. Create Supabase project
-# Go to https://supabase.com → Create project: "mlff-equipment-tracking"
-# Region: Europe West (closest to Serbia)
-
-# 2. Run SQL migrations
-# Supabase Dashboard → SQL Editor → Run these files in order:
-supabase/migrations/001_initial_schema.sql
-supabase/migrations/002_rls_policies.sql
-supabase/migrations/003_indexes.sql
-supabase/migrations/004_storage_setup.sql
-# Version 4.0 enhancements:
-supabase/migrations/005_sub_location_field.sql
-supabase/migrations/006_shared_documents.sql
-supabase/migrations/007_enhanced_audit_log.sql
-
-# 3. Get API credentials
-# Settings → API → Copy:
-#   - Project URL
-#   - anon/public key
-```
-
-### 3. Configure Application
-
-```bash
-# Clone repository
-git clone https://github.com/ognjenpetar/mlff-equipment-tracking.git
-cd mlff-equipment-tracking
-
-# Checkout Supabase branch
-git checkout 3.supabase
-
-# Edit js/supabase-config.js
-# Replace:
-#   SUPABASE_URL = 'https://YOUR-PROJECT-ID.supabase.co'
-#   SUPABASE_ANON_KEY = 'your-anon-key-here'
-```
-
-### 4. Setup Google OAuth
-
-See detailed instructions in [DEPLOYMENT.md](DEPLOYMENT.md#google-oauth-setup).
-
-### 5. Deploy to GitHub Pages
-
-```bash
-# Push to GitHub
-git push origin 3.supabase
-
-# Enable GitHub Pages
-# GitHub repo → Settings → Pages
-# Source: 3.supabase branch, / (root) folder
-# Save
-
-# Your app will be live at:
-# https://ognjenpetar.github.io/mlff-equipment-tracking/
-```
-
-### 6. Migrate Data (Optional)
-
-If you have data from previous version (v1.3 LocalStorage or v2.0 Firebase):
-
-```bash
-# Open migration.html in browser
-# Login with Google OAuth
-# Click "Start Migration"
-# Wait for completion (5-30 minutes)
-```
-
----
-
-## 📚 Documentation
-
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide (Supabase setup, GitHub Pages, OAuth)
-- **[BACKEND_GUIDE.md](BACKEND_GUIDE.md)** - Technical documentation (database schema, API reference, security)
-- **[UPUTSTVO_ZA_KORISCENJE.md](UPUTSTVO_ZA_KORISCENJE.md)** - User guide in Serbian (step-by-step instructions)
-
----
-
-## 🛠️ Technology Stack
-
-### Frontend
-- **HTML5** - Semantic markup
-- **CSS3** - Modern styling with gradients, flexbox, grid
-- **JavaScript (ES6+)** - Async/await, modules, arrow functions
-- **[Leaflet.js](https://leafletjs.com/)** - Interactive maps (OpenStreetMap)
-- **[QRCode.js](https://davidshimjs.github.io/qrcodejs/)** - QR code generation
-- **[Font Awesome](https://fontawesome.com/)** - Icons
-
-### Backend
-- **[Supabase](https://supabase.com/)** - Backend-as-a-Service
-  - **PostgreSQL** - Relational database with full-text search
-  - **Storage** - File storage with CDN (photos, PDFs)
-  - **Auth** - Google OAuth authentication
-  - **Row Level Security** - Fine-grained access control
-
-### Hosting
-- **[GitHub Pages](https://pages.github.com/)** - Static site hosting (free unlimited)
-
-### Development
-- **Git** - Version control
-- **GitHub** - Repository hosting
-- **VSCode** - Code editor (recommended)
-
----
-
-## 💾 Database Schema
+## Database Schema
 
 ```sql
--- 6 PostgreSQL tables with foreign key relationships
+-- 6 PostgreSQL tabela
 
 locations (
-    id UUID PRIMARY KEY,
-    name TEXT,
-    latitude NUMERIC(10,7),
-    longitude NUMERIC(10,7),
-    address TEXT,
-    photo_url TEXT,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
+    id, name, latitude, longitude, address, photo_url,
+    created_at, updated_at
 )
 
 equipment (
-    id UUID PRIMARY KEY,
-    location_id UUID → locations(id) CASCADE,
-    inventory_number TEXT UNIQUE,
-    type TEXT,
-    status TEXT, -- Aktivna, Na servisu, Neispravna, Povučena
-    manufacturer TEXT,
-    model TEXT,
-    serial_number TEXT,
-    ip_address INET,
-    mac_address MACADDR,
-    installation_date DATE,
-    warranty_expiry DATE,
-    photo_url TEXT,
-    notes TEXT,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
+    id, location_id, inventory_number, type, status, sub_location,
+    manufacturer, model, serial_number, ip_address, mac_address,
+    installation_date, warranty_expiry, photo_url, notes,
+    created_at, updated_at
 )
+-- Status: Aktivna, Na servisu, Neispravna, Neaktivna, Povučena
 
 documents (
-    id UUID PRIMARY KEY,
-    equipment_id UUID → equipment(id) CASCADE,
-    name TEXT,
-    file_url TEXT,
-    storage_path TEXT,
-    file_type TEXT,
-    file_size BIGINT,
-    uploaded_at TIMESTAMPTZ
+    id, equipment_id, name, file_url, storage_path,
+    file_type, file_size, uploaded_at
 )
 
 maintenance (
-    id UUID PRIMARY KEY,
-    equipment_id UUID → equipment(id) CASCADE,
-    type TEXT, -- Preventivni, Korektivni, Inspekcija, etc.
-    date DATE,
-    description TEXT,
-    performed_by TEXT,
-    cost NUMERIC(10,2),
-    next_service_date DATE
+    id, equipment_id, type, date, description,
+    performed_by, cost, next_service_date
 )
 
 audit_log (
-    id UUID PRIMARY KEY,
-    equipment_id UUID → equipment(id) CASCADE,
-    action TEXT,
-    details TEXT,
-    user_id UUID,
-    user_email TEXT,
-    timestamp TIMESTAMPTZ
+    id, equipment_id, action, details, old_value, new_value,
+    field_name, user_id, user_email, timestamp
 )
 
 custom_types (
-    id UUID PRIMARY KEY,
-    type_name TEXT UNIQUE
+    id, type_name
 )
 ```
 
-See [BACKEND_GUIDE.md](BACKEND_GUIDE.md) for detailed schema documentation.
+---
+
+## Troškovi
+
+### Supabase Free Tier
+- ✅ Database: 500 MB (dovoljno za 1000+ opreme)
+- ✅ Storage: 1 GB
+- ✅ Bandwidth: 2 GB/mesec
+- ✅ Auth: Neograničeno korisnika
+
+### GitHub Pages
+- ✅ Hosting: Besplatno
+- ✅ Bandwidth: Neograničeno
+- ✅ SSL: Besplatno
+
+**Zaključak: Potpuno besplatno za većinu use case-ova!**
 
 ---
 
-## 💰 Cost Analysis
+## Tehnologije
 
-### Supabase Free Tier (Spark Plan)
+### Frontend
+- HTML5, CSS3, JavaScript (ES6+)
+- [Leaflet.js](https://leafletjs.com/) - Interaktivne mape
+- [Chart.js](https://www.chartjs.org/) - Grafikoni
+- [QRCode.js](https://davidshimjs.github.io/qrcodejs/) - QR kodovi
+- [Font Awesome](https://fontawesome.com/) - Ikone
 
-**Database:**
-- ✅ 500 MB storage (enough for 1000+ equipment)
-- ✅ Unlimited API requests
-- ✅ 50,000 database rows
+### Backend
+- [Supabase](https://supabase.com/) - PostgreSQL + Storage + Auth
 
-**Storage:**
-- ✅ 1 GB file storage
-- ✅ 2 GB bandwidth/month
-- ✅ 50 MB max file size
-
-**Authentication:**
-- ✅ Unlimited users
-- ✅ Google OAuth included
-
-**Hosting (GitHub Pages):**
-- ✅ Unlimited bandwidth (soft limit: 100 GB/month)
-- ✅ Unlimited page views
-- ✅ Free SSL certificate
-
-### Estimated Usage
-
-**Typical deployment:**
-- 100 locations × 5 KB = 500 KB
-- 1000 equipment × 10 KB = 10 MB
-- 5000 documents (200 KB avg) = 1 GB
-- **Total storage:** ~1 GB (within free tier)
-
-**Bandwidth:**
-- QR code scans: 1000/month × 100 KB = 100 MB
-- Admin access: 100 sessions × 5 MB = 500 MB
-- **Total bandwidth:** ~600 MB/month (within 2 GB free tier)
-
-### Upgrade Costs (if needed)
-
-**Supabase Pro Plan: $25/month**
-- 8 GB database
-- 100 GB file storage
-- 50 GB bandwidth
-
-**Conclusion: Free tier is sufficient for most use cases! 🎉**
+### Build Tools
+- [Vite](https://vitejs.dev/) - Build tool
 
 ---
 
-## 🔐 Security
+## Verzije
 
-### Data Protection
-- ✅ **Row Level Security (RLS)** - PostgreSQL policies prevent unauthorized access
-- ✅ **Public READ** - QR codes work without login (equipment reports only)
-- ✅ **Authenticated WRITE** - Only logged-in admins can create/update/delete
-- ✅ **Google OAuth** - No passwords stored, secure authentication
-- ✅ **File Validation** - Max 50MB, only images and PDFs allowed
-- ✅ **SQL Injection Protection** - Supabase parameterized queries
-- ✅ **XSS Protection** - Input sanitization in frontend
+### v5.0 - Enhanced Analytics Edition (Januar 2026)
+- Bulk operacije (masovna promena statusa, brisanje)
+- Napredna pretraga sa 8+ filtera
+- Notifikacije (garancija, održavanje)
+- Status "Neaktivna"
+- Interaktivni dashboard sa filterima
+- Lokacijska analitika sa mapom
+- Napredni KPI-jevi
+- Drill-down analitika
+- Export u PDF/Excel
 
-### Best Practices
-1. **Never commit Supabase credentials to public repo** - Use environment variables
-2. **Rotate API keys regularly** - Supabase Dashboard → Settings → API
-3. **Monitor usage** - Check Supabase Dashboard for unusual activity
-4. **Backup data regularly** - Use Supabase export features
-5. **Use HTTPS only** - GitHub Pages enforces SSL automatically
+### v4.0 - Enhanced Edition (Decembar 2025)
+- Sub-lokacije (Gentri/Ormar)
+- QR kodovi sa logom
+- Proširena polja opreme
+- Enhanced audit log
 
----
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**1. "Supabase credentials not configured"**
-- **Solution:** Edit `js/supabase-config.js` with your project URL and anon key
-
-**2. "No data found in LocalStorage" (migration)**
-- **Solution:** Open migration.html in same browser where v1.3 was used
-
-**3. "Permission denied" when creating location**
-- **Solution:** Login with Google OAuth first (click Login button)
-
-**4. "Failed to upload photo"**
-- **Solution:** Check file size (max 50MB) and type (JPEG, PNG only)
-
-**5. QR code doesn't load equipment report**
-- **Solution:** Verify equipment exists in Supabase Dashboard → Database → equipment table
-
-### Debug Mode
-
-Open browser console (F12) to see detailed logs:
-```javascript
-// Check Supabase connection
-await supabase.from('locations').select('count')
-
-// Check authentication status
-const user = await getCurrentUser()
-console.log(user)
-
-// Test database query
-const { data, error } = await supabase.from('equipment').select('*').limit(5)
-console.log(data, error)
-```
+### v3.0 - Supabase Edition
+- Migracija sa Firebase na Supabase
+- PostgreSQL database
+- GitHub Pages hosting
 
 ---
 
-## 📦 Project Structure
+## Licenca
 
-```
-mlff-equipment-tracking/
-├── index.html                  # Main application (SPA)
-├── migration.html              # Migration tool (LocalStorage → Supabase)
-├── css/
-│   └── styles.css              # Application styles
-├── js/
-│   ├── supabase-config.js      # Supabase initialization
-│   ├── supabase-service.js     # Database & storage operations (22 functions)
-│   ├── router.js               # Hash-based routing
-│   └── app.js                  # Application logic
-├── supabase/
-│   └── migrations/
-│       ├── 001_initial_schema.sql      # Database tables
-│       ├── 002_rls_policies.sql        # Security policies
-│       ├── 003_indexes.sql             # Performance indexes
-│       └── 004_storage_setup.sql       # Storage buckets
-├── firebase-version/           # Archived Firebase v2.0 implementation
-│   ├── js/
-│   │   ├── firebase-config.js
-│   │   └── firebase-service.js
-│   ├── firestore.rules
-│   ├── storage.rules
-│   ├── firebase.json
-│   └── ... (all v2.0 files preserved)
-├── README.md                   # This file
-├── DEPLOYMENT.md               # Deployment guide
-├── BACKEND_GUIDE.md            # Technical documentation
-└── UPUTSTVO_ZA_KORISCENJE.md   # User guide (Serbian)
-```
+MIT License - vidi LICENSE fajl.
 
 ---
 
-## 🔄 Version History
+## Podrška
 
-### Version 3.0 - Supabase Edition (Current)
-- ✅ Migrated from Firebase to Supabase + GitHub Pages
-- ✅ PostgreSQL database (vs NoSQL Firestore)
-- ✅ Better free tier (1GB storage, 2GB bandwidth)
-- ✅ No regional restrictions
-- ✅ Unlimited hosting (GitHub Pages)
-
-### Version 2.0 - Firebase Backend
-- ✅ Cloud database (Firestore)
-- ✅ Cloud storage (Firebase Storage)
-- ✅ Authentication (Firebase Auth)
-- ❌ Regional restrictions (Europe storage issues)
-- ❌ Limited bandwidth (360MB/day)
-- 📦 Archived in `firebase-version/` folder
-
-### Version 1.3 - LocalStorage
-- ✅ Offline-first design
-- ❌ Limited capacity (5-10MB)
-- ❌ No cloud sync
-- ❌ Browser-dependent data
+- **GitHub Issues:** [Prijavi problem](https://github.com/ognjenpetar/Mlff-evidencina-opreme/issues)
+- **Dokumentacija:** Vidi linkove iznad
 
 ---
 
-## 🤝 Contributing
+**Verzija:** 5.0 - Enhanced Analytics Edition
+**Poslednje Ažuriranje:** Januar 2026
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see LICENSE file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **[Supabase](https://supabase.com/)** - Open source Firebase alternative
-- **[GitHub Pages](https://pages.github.com/)** - Free static site hosting
-- **[Leaflet](https://leafletjs.com/)** - Open source mapping library
-- **[OpenStreetMap](https://www.openstreetmap.org/)** - Free map data
-- **[QRCode.js](https://davidshimjs.github.io/qrcodejs/)** - QR code generation
-- **[Font Awesome](https://fontawesome.com/)** - Icon library
-
----
-
-## 📞 Support
-
-- **GitHub Issues:** [Report a bug](https://github.com/ognjenpetar/mlff-equipment-tracking/issues)
-- **Documentation:** See [DEPLOYMENT.md](DEPLOYMENT.md) and [BACKEND_GUIDE.md](BACKEND_GUIDE.md)
-- **Email:** [your-email@example.com](mailto:your-email@example.com)
-
----
-
-## 🌟 Star This Repo
-
-If you find this project useful, please give it a star! ⭐
-
-It helps others discover this project and motivates continued development.
-
----
-
-**Built with ❤️ using [Claude Code](https://claude.com/claude-code)**
-
-**Version:** 3.0 - Supabase Edition
-**Last Updated:** December 2025

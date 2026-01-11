@@ -1530,6 +1530,9 @@ async function saveLocation(event) {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             });
+
+            // Set as current location and navigate to it
+            currentLocationId = newLocationId;
         }
 
         saveData();
@@ -1547,6 +1550,11 @@ async function saveLocation(event) {
 
         if (currentLocationId && document.getElementById('locationDetailView').classList.contains('active')) {
             renderLocationDetail();
+        }
+
+        // Navigate to new location if it was just created
+        if (!id && currentLocationId) {
+            router.navigate('/location/' + currentLocationId);
         }
 
         // Show success message
@@ -1945,6 +1953,7 @@ async function saveEquipment(event) {
                     inventoryNumber: equipment.inventoryNumber,
                     type: equipment.type,
                     status: equipment.status,
+                    subLocation: equipment.sub_location,  // Required by Supabase trigger
                     manufacturer: equipment.manufacturer,
                     model: equipment.model,
                     serialNumber: equipment.serial_number || equipment.serialNumber,
@@ -1971,6 +1980,7 @@ async function saveEquipment(event) {
                 inventoryNumber,
                 type,
                 status,
+                subLocation,  // Required by Supabase trigger (must be "Gentri" or "Ormar")
                 manufacturer,
                 model,
                 serialNumber,

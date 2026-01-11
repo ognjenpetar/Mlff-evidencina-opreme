@@ -238,6 +238,7 @@ const SupabaseService = {
                     inventory_number: data.inventoryNumber,
                     type: data.type,
                     status: data.status || 'Aktivna',
+                    sub_location: data.subLocation,  // Required by trigger: must be "Gentri" or "Ormar"
                     manufacturer: data.manufacturer || null,
                     model: data.model || null,
                     serial_number: data.serialNumber || null,
@@ -292,6 +293,7 @@ const SupabaseService = {
             if (data.inventoryNumber !== undefined) updateData.inventory_number = data.inventoryNumber;
             if (data.type !== undefined) updateData.type = data.type;
             if (data.status !== undefined) updateData.status = data.status;
+            if (data.subLocation !== undefined) updateData.sub_location = data.subLocation;
             if (data.manufacturer !== undefined) updateData.manufacturer = data.manufacturer;
             if (data.model !== undefined) updateData.model = data.model;
             if (data.serialNumber !== undefined) updateData.serial_number = data.serialNumber;

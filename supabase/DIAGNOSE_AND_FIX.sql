@@ -78,12 +78,12 @@ SELECT 'STEP 6: Checking Storage RLS policies...' AS status;
 
 SELECT
     policyname,
+    cmd AS operation,
     CASE
         WHEN policyname LIKE '%public%' OR policyname LIKE '%anon%' THEN '✅ ALLOWS ANONYMOUS'
         WHEN policyname LIKE '%authenticated%' THEN '❌ BLOCKS ANONYMOUS'
         ELSE '⚠️ UNKNOWN'
-    END AS status,
-    definition
+    END AS status
 FROM pg_policies
 WHERE schemaname = 'storage'
   AND tablename = 'objects'

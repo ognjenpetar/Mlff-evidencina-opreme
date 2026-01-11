@@ -1698,8 +1698,8 @@ async function saveEquipment(event) {
         const manufacturer = document.getElementById('eqFormManufacturer').value.trim() || null;
         const model = document.getElementById('eqFormModel').value.trim() || null;
         const serialNumber = document.getElementById('eqFormSerialNumber').value.trim() || null;
-        const ip = document.getElementById('eqFormIP').value.trim();
-        const mac = document.getElementById('eqFormMAC').value.trim();
+        const ip = document.getElementById('eqFormIP').value.trim() || null;
+        const mac = document.getElementById('eqFormMAC').value.trim() || null;
 
         // Validate IP address format (IPv4)
         if (ip && !/^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip)) {

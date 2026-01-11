@@ -175,7 +175,7 @@ async function migrateLocalStorageToSupabase() {
                     latitude: location.latitude,
                     longitude: location.longitude,
                     description: location.description || null,
-                    photoURL: location.photo_url || null
+                    photo_url: location.photo_url || null  // ✅ Fixed: use snake_case
                 };
 
                 const { error: createError } = await supabase

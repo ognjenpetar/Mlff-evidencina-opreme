@@ -1701,6 +1701,20 @@ async function saveEquipment(event) {
         const ip = document.getElementById('eqFormIP').value.trim();
         const mac = document.getElementById('eqFormMAC').value.trim();
 
+        // Validate IP address format (IPv4)
+        if (ip && !/^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip)) {
+            showToast('IP adresa nije validna. Unesite validnu IPv4 adresu (npr. 192.168.1.100)', 'error');
+            document.getElementById('eqFormIP').focus();
+            return;
+        }
+
+        // Validate MAC address format (XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX)
+        if (mac && !/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/.test(mac)) {
+            showToast('MAC adresa nije validna. Unesite validnu MAC adresu (npr. AA:BB:CC:DD:EE:FF)', 'error');
+            document.getElementById('eqFormMAC').focus();
+            return;
+        }
+
         // Validate that type matches sub-location
         if (subLocation) {
             const validTypes = SUB_LOCATION_EQUIPMENT_TYPES[subLocation];
@@ -1712,6 +1726,23 @@ async function saveEquipment(event) {
         const x = document.getElementById('eqFormX').value ? parseInt(document.getElementById('eqFormX').value) : null;
         const y = document.getElementById('eqFormY').value ? parseInt(document.getElementById('eqFormY').value) : null;
         const z = document.getElementById('eqFormZ').value ? parseInt(document.getElementById('eqFormZ').value) : null;
+
+        // Validate coordinates are valid integers
+        if (document.getElementById('eqFormX').value && (isNaN(x) || x !== parseFloat(document.getElementById('eqFormX').value))) {
+            showToast('X koordinata mora biti ceo broj (može biti negativan, npr. -10)', 'error');
+            document.getElementById('eqFormX').focus();
+            return;
+        }
+        if (document.getElementById('eqFormY').value && (isNaN(y) || y !== parseFloat(document.getElementById('eqFormY').value))) {
+            showToast('Y koordinata mora biti ceo broj (može biti negativan, npr. -10)', 'error');
+            document.getElementById('eqFormY').focus();
+            return;
+        }
+        if (document.getElementById('eqFormZ').value && (isNaN(z) || z !== parseFloat(document.getElementById('eqFormZ').value))) {
+            showToast('Z koordinata mora biti ceo broj (može biti negativan, npr. -10)', 'error');
+            document.getElementById('eqFormZ').focus();
+            return;
+        }
         const installDate = document.getElementById('eqFormInstallDate').value;
         const warrantyDate = document.getElementById('eqFormWarranty').value;
         const installer = document.getElementById('eqFormInstaller').value.trim();

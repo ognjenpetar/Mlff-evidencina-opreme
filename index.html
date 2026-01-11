@@ -772,11 +772,15 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="eqFormIP">IP Adresa</label>
-                            <input type="text" id="eqFormIP" placeholder="192.168.1.100">
+                            <input type="text" id="eqFormIP" placeholder="192.168.1.100"
+                                   pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                                   title="Unesite validnu IPv4 adresu (npr. 192.168.1.100)">
                         </div>
                         <div class="form-group">
                             <label for="eqFormMAC">MAC Adresa</label>
-                            <input type="text" id="eqFormMAC" placeholder="AA:BB:CC:DD:EE:FF">
+                            <input type="text" id="eqFormMAC" placeholder="AA:BB:CC:DD:EE:FF"
+                                   pattern="^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$"
+                                   title="Unesite validnu MAC adresu (npr. AA:BB:CC:DD:EE:FF ili AA-BB-CC-DD-EE-FF)">
                         </div>
                     </div>
                 </div>
@@ -786,15 +790,15 @@
                     <div class="form-row three-col">
                         <div class="form-group">
                             <label for="eqFormX">X koordinata</label>
-                            <input type="number" id="eqFormX" placeholder="0">
+                            <input type="number" id="eqFormX" placeholder="0" step="1" title="Unesite ceo broj (može biti negativan, npr. -10)">
                         </div>
                         <div class="form-group">
                             <label for="eqFormY">Y koordinata</label>
-                            <input type="number" id="eqFormY" placeholder="0">
+                            <input type="number" id="eqFormY" placeholder="0" step="1" title="Unesite ceo broj (može biti negativan, npr. -10)">
                         </div>
                         <div class="form-group">
                             <label for="eqFormZ">Z koordinata</label>
-                            <input type="number" id="eqFormZ" placeholder="0">
+                            <input type="number" id="eqFormZ" placeholder="0" step="1" title="Unesite ceo broj (može biti negativan, npr. -10)">
                         </div>
                     </div>
                 </div>

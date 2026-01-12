@@ -134,10 +134,23 @@ function initializeRouter() {
 
 // Load data from localStorage
 function loadData() {
+    // After Supabase migration, we no longer use LocalStorage for data
+    // LocalStorage is only used for migration flag, settings, and custom types
+    const MIGRATION_KEY = 'mlff_data_migrated_to_supabase';
+
+    if (localStorage.getItem(MIGRATION_KEY) === 'true') {
+        // Migration completed - start with empty data, will load from Supabase
+        console.log('📊 Using Supabase as data source (LocalStorage data ignored)');
+        appData = { locations: [], lastModified: null, lastBackup: null };
+        return;
+    }
+
+    // Pre-migration - load from LocalStorage for migration
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
         try {
             appData = JSON.parse(stored);
+            console.log('📊 Loaded LocalStorage data for migration');
         } catch (e) {
             console.error('Error loading data:', e);
             appData = { locations: [], lastModified: null, lastBackup: null };

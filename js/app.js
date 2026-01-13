@@ -500,7 +500,7 @@ function renderStructureTree() {
                 const isActive = currentEquipmentId === eq.id;
                 const statusClass = getStatusDotClass(eq.status);
                 // Display: "TYPE INV-NUMBER" (e.g., "ANTENA 01-1-A-1")
-                const displayName = `${eq.type || 'undefined'} ${eq.inventory_number || eq.inventoryNumber || ''}`;
+                const displayName = `${eq.type || 'undefined'} ${eq.inventoryNumber || ''}`;
                 html += `
                     <div class="tree-equipment ${isActive ? 'active' : ''}" onclick="event.stopPropagation(); currentLocationId='${loc.id}'; showEquipmentDetail('${eq.id}')">
                         <i class="fas fa-microchip"></i>
@@ -879,10 +879,8 @@ function renderLocationsGrid() {
 
     container.innerHTML = appData.locations.map(loc => {
         const equipmentCount = (loc.equipment || []).length;
-        // Support both photo_url (Supabase) and photo (legacy)
-        const photoUrl = loc.photo_url || loc.photo;
-        const imageHtml = photoUrl
-            ? `<img src="${photoUrl}" alt="${loc.name}">`
+        const imageHtml = loc.photoUrl
+            ? `<img src="${loc.photoUrl}" alt="${loc.name}">`
             : `<div class="no-image"><i class="fas fa-image"></i><span>Nema fotografije</span></div>`;
 
         return `
@@ -932,9 +930,8 @@ function renderLocationDetail() {
 
     const imgContainer = document.getElementById('locationImage');
     const noImgDiv = document.getElementById('noLocationImage');
-    const photoUrl = location.photo_url || location.photo;
-    if (photoUrl) {
-        imgContainer.src = photoUrl;
+    if (location.photoUrl) {
+        imgContainer.src = location.photoUrl;
         imgContainer.style.display = 'block';
         noImgDiv.style.display = 'none';
     } else {
@@ -942,9 +939,9 @@ function renderLocationDetail() {
         noImgDiv.style.display = 'flex';
     }
 
-    // Group equipment by sub-location
-    const gentriEquipment = (location.equipment || []).filter(eq => eq.sub_location === 'Gentri');
-    const ormarEquipment = (location.equipment || []).filter(eq => eq.sub_location === 'Ormar');
+    // Group equipment by sub-location (now using camelCase from Supabase conversion)
+    const gentriEquipment = (location.equipment || []).filter(eq => eq.subLocation === 'Gentri');
+    const ormarEquipment = (location.equipment || []).filter(eq => eq.subLocation === 'Ormar');
 
     // Update counts
     const gentriCountEl = document.getElementById('gentriCount');
@@ -981,9 +978,8 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
     }
 
     container.innerHTML = equipment.map(eq => {
-        const photoUrl = eq.photo_url || eq.photo;
-        const imageHtml = photoUrl
-            ? `<img src="${photoUrl}" alt="${eq.type}">`
+        const imageHtml = eq.photoUrl
+            ? `<img src="${eq.photoUrl}" alt="${eq.type}">`
             : `<div class="no-image"><i class="fas fa-microchip"></i></div>`;
 
         const status = eq.status || 'Aktivna';
@@ -1034,18 +1030,16 @@ async function renderEquipmentDetail() {
 
     // Location image
     const locImgContainer = document.getElementById('equipmentLocationImage');
-    const locPhotoUrl = location.photo_url || location.photo;
-    if (locPhotoUrl) {
-        locImgContainer.innerHTML = `<img src="${locPhotoUrl}" alt="${location.name}">`;
+    if (location.photoUrl) {
+        locImgContainer.innerHTML = `<img src="${location.photoUrl}" alt="${location.name}">`;
     } else {
         locImgContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i></div>';
     }
 
     // Equipment image
     const eqImgContainer = document.getElementById('equipmentImage');
-    const eqPhotoUrl = equipment.photo_url || equipment.photo;
-    if (eqPhotoUrl) {
-        eqImgContainer.innerHTML = `<img src="${eqPhotoUrl}" alt="${equipment.type}">`;
+    if (equipment.photoUrl) {
+        eqImgContainer.innerHTML = `<img src="${equipment.photoUrl}" alt="${equipment.type}">`;
     } else {
         eqImgContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i></div>';
     }
@@ -1055,10 +1049,10 @@ async function renderEquipmentDetail() {
     document.getElementById('eqInventory').textContent = equipment.inventoryNumber || '-';
     document.getElementById('eqType').textContent = equipment.type || '-';
     document.getElementById('eqStatus').textContent = status;
-    document.getElementById('eqSubLocation').textContent = equipment.sub_location || '-';
+    document.getElementById('eqSubLocation').textContent = equipment.subLocation || '-';
     document.getElementById('eqManufacturer').textContent = equipment.manufacturer || '-';
     document.getElementById('eqModel').textContent = equipment.model || '-';
-    document.getElementById('eqSerialNumber').textContent = equipment.serial_number || '-';
+    document.getElementById('eqSerialNumber').textContent = equipment.serialNumber || '-';
     document.getElementById('eqIP').textContent = equipment.ip || '-';
     document.getElementById('eqMAC').textContent = equipment.mac || '-';
     document.getElementById('eqX').textContent = equipment.x !== undefined && equipment.x !== null ? `${equipment.x} cm` : '-';
@@ -1680,10 +1674,10 @@ function editEquipment(equipmentId) {
     document.getElementById('eqFormType').value = equipment.type || '';
     document.getElementById('eqFormInventory').value = equipment.inventoryNumber || '';
     document.getElementById('eqFormStatus').value = equipment.status || 'Aktivna';
-    document.getElementById('eqFormSubLocation').value = equipment.sub_location || '';
+    document.getElementById('eqFormSubLocation').value = equipment.subLocation || '';
     document.getElementById('eqFormManufacturer').value = equipment.manufacturer || '';
     document.getElementById('eqFormModel').value = equipment.model || '';
-    document.getElementById('eqFormSerialNumber').value = equipment.serial_number || '';
+    document.getElementById('eqFormSerialNumber').value = equipment.serialNumber || '';
     document.getElementById('eqFormIP').value = equipment.ip || '';
     document.getElementById('eqFormMAC').value = equipment.mac || '';
     document.getElementById('eqFormX').value = equipment.x || '';
@@ -1696,8 +1690,8 @@ function editEquipment(equipmentId) {
     document.getElementById('eqFormNotes').value = equipment.notes || '';
 
     const preview = document.getElementById('eqPhotoPreview');
-    if (equipment.photo) {
-        preview.innerHTML = `<img src="${equipment.photo}" alt="Preview">`;
+    if (equipment.photoUrl) {
+        preview.innerHTML = `<img src="${equipment.photoUrl}" alt="Preview">`;
     } else {
         preview.innerHTML = '';
     }

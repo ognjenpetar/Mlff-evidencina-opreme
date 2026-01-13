@@ -14,12 +14,49 @@
  * - Auto-generated IDs → UUID primary keys
  */
 
+// ===== HELPER FUNCTIONS: snake_case ↔ camelCase conversion =====
+/**
+ * Convert snake_case string to camelCase
+ * Example: inventory_number → inventoryNumber
+ */
+function snakeToCamel(str) {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Convert object keys from snake_case to camelCase
+ * Recursively handles nested objects and arrays
+ */
+function convertKeysToCamelCase(obj) {
+    if (obj === null || obj === undefined) return obj;
+
+    // Handle arrays
+    if (Array.isArray(obj)) {
+        return obj.map(item => convertKeysToCamelCase(item));
+    }
+
+    // Handle objects
+    if (typeof obj === 'object' && obj.constructor === Object) {
+        const converted = {};
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const camelKey = snakeToCamel(key);
+                converted[camelKey] = convertKeysToCamelCase(obj[key]);
+            }
+        }
+        return converted;
+    }
+
+    // Return primitive values as-is
+    return obj;
+}
+
 const SupabaseService = {
     // ===== LOCATIONS =====
 
     /**
      * Get all locations from PostgreSQL
-     * @returns {Promise<Array>} Array of location objects
+     * @returns {Promise<Array>} Array of location objects (with camelCase keys)
      */
     async getLocations() {
         try {
@@ -31,7 +68,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} locations`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting locations:', error);
             throw error;
@@ -55,7 +93,8 @@ const SupabaseService = {
             if (!data) throw new Error('Location not found');
 
             console.log('✅ Fetched location:', id);
-            return data;
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data);
         } catch (error) {
             console.error('❌ Error getting location:', error);
             throw error;
@@ -172,7 +211,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} equipment for location ${locationId}`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting equipment:', error);
             throw error;
@@ -193,7 +233,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} total equipment`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting all equipment:', error);
             throw error;
@@ -217,7 +258,8 @@ const SupabaseService = {
             if (!data) throw new Error('Equipment not found');
 
             console.log('✅ Fetched equipment:', id);
-            return data;
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data);
         } catch (error) {
             console.error('❌ Error getting equipment by ID:', error);
             throw error;
@@ -367,7 +409,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} documents for equipment ${equipmentId}`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting documents:', error);
             throw error;
@@ -576,7 +619,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} maintenance records for equipment ${equipmentId}`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting maintenance history:', error);
             throw error;
@@ -637,7 +681,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} audit log entries for equipment ${equipmentId}`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting audit log:', error);
             throw error;
@@ -696,7 +741,8 @@ const SupabaseService = {
             if (error) throw error;
 
             console.log(`✅ Fetched ${data?.length || 0} custom types`);
-            return data || [];
+            // Convert snake_case to camelCase for JavaScript compatibility
+            return convertKeysToCamelCase(data || []);
         } catch (error) {
             console.error('❌ Error getting custom types:', error);
             throw error;

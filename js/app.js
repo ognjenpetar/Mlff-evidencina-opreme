@@ -292,6 +292,8 @@ async function loadDataFromSupabase() {
 
         // Update UI
         renderDashboard();
+        renderStructureTree();
+        updateLocationFilter();
     } catch (error) {
         console.error('❌ Error loading data from Supabase:', error);
         showToast('Greška pri učitavanju podataka iz Supabase.', 'error');
@@ -362,7 +364,13 @@ function showSubLocationTab(subLocation, event) {
 }
 
 // Report view functions
-function showLocationReportView(locationId) {
+async function showLocationReportView(locationId) {
+    // Ensure data is loaded from Supabase before searching
+    if (appData.locations.length === 0) {
+        console.log('📊 Data not loaded yet, loading from Supabase...');
+        await loadDataFromSupabase();
+    }
+
     const location = appData.locations.find(l => l.id === locationId);
     if (!location) {
         alert('Lokacija nije pronađena');
@@ -380,7 +388,13 @@ function showLocationReportView(locationId) {
     updateBreadcrumb();
 }
 
-function showEquipmentReportView(equipmentId) {
+async function showEquipmentReportView(equipmentId) {
+    // Ensure data is loaded from Supabase before searching
+    if (appData.locations.length === 0) {
+        console.log('📊 Data not loaded yet, loading from Supabase...');
+        await loadDataFromSupabase();
+    }
+
     // Find equipment across all locations
     let foundLocation = null;
     let foundEquipment = null;
@@ -918,8 +932,9 @@ function renderLocationDetail() {
 
     const imgContainer = document.getElementById('locationImage');
     const noImgDiv = document.getElementById('noLocationImage');
-    if (location.photo) {
-        imgContainer.src = location.photo;
+    const photoUrl = location.photo_url || location.photo;
+    if (photoUrl) {
+        imgContainer.src = photoUrl;
         imgContainer.style.display = 'block';
         noImgDiv.style.display = 'none';
     } else {
@@ -966,8 +981,9 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
     }
 
     container.innerHTML = equipment.map(eq => {
-        const imageHtml = eq.photo
-            ? `<img src="${eq.photo}" alt="${eq.type}">`
+        const photoUrl = eq.photo_url || eq.photo;
+        const imageHtml = photoUrl
+            ? `<img src="${photoUrl}" alt="${eq.type}">`
             : `<div class="no-image"><i class="fas fa-microchip"></i></div>`;
 
         const status = eq.status || 'Aktivna';
@@ -1018,16 +1034,18 @@ async function renderEquipmentDetail() {
 
     // Location image
     const locImgContainer = document.getElementById('equipmentLocationImage');
-    if (location.photo) {
-        locImgContainer.innerHTML = `<img src="${location.photo}" alt="${location.name}">`;
+    const locPhotoUrl = location.photo_url || location.photo;
+    if (locPhotoUrl) {
+        locImgContainer.innerHTML = `<img src="${locPhotoUrl}" alt="${location.name}">`;
     } else {
         locImgContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i></div>';
     }
 
     // Equipment image
     const eqImgContainer = document.getElementById('equipmentImage');
-    if (equipment.photo) {
-        eqImgContainer.innerHTML = `<img src="${equipment.photo}" alt="${equipment.type}">`;
+    const eqPhotoUrl = equipment.photo_url || equipment.photo;
+    if (eqPhotoUrl) {
+        eqImgContainer.innerHTML = `<img src="${eqPhotoUrl}" alt="${equipment.type}">`;
     } else {
         eqImgContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i></div>';
     }

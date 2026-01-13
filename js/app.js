@@ -485,10 +485,12 @@ function renderStructureTree() {
             loc.equipment.forEach(eq => {
                 const isActive = currentEquipmentId === eq.id;
                 const statusClass = getStatusDotClass(eq.status);
+                // Display: "TYPE INV-NUMBER" (e.g., "ANTENA 01-1-A-1")
+                const displayName = `${eq.type || 'undefined'} ${eq.inventory_number || eq.inventoryNumber || ''}`;
                 html += `
                     <div class="tree-equipment ${isActive ? 'active' : ''}" onclick="event.stopPropagation(); currentLocationId='${loc.id}'; showEquipmentDetail('${eq.id}')">
                         <i class="fas fa-microchip"></i>
-                        <span>${eq.inventoryNumber}</span>
+                        <span>${displayName}</span>
                         <span class="status-dot ${statusClass}"></span>
                     </div>
                 `;
@@ -863,8 +865,10 @@ function renderLocationsGrid() {
 
     container.innerHTML = appData.locations.map(loc => {
         const equipmentCount = (loc.equipment || []).length;
-        const imageHtml = loc.photo
-            ? `<img src="${loc.photo}" alt="${loc.name}">`
+        // Support both photo_url (Supabase) and photo (legacy)
+        const photoUrl = loc.photo_url || loc.photo;
+        const imageHtml = photoUrl
+            ? `<img src="${photoUrl}" alt="${loc.name}">`
             : `<div class="no-image"><i class="fas fa-image"></i><span>Nema fotografije</span></div>`;
 
         return `

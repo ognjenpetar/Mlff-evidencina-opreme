@@ -1,8 +1,11 @@
 # MLFF Equipment Tracking System
 
-**Version 4.0 - Enhanced Edition** | [Orion E-mobility](https://github.com/ognjenpetar/mlff-equipment-tracking)
+**Version 4.0 - Supabase Edition** | [GitHub Repository](https://github.com/ognjenpetar/Mlff-evidencina-opreme)
 
-A modern web application for tracking and managing MLFF (Medium-Large Fiber Facility) equipment installations with GPS coordinates, QR codes with logo, maintenance history, and document management.
+A modern web application for tracking and managing MLFF equipment installations with GPS coordinates, QR codes, maintenance history, and document management.
+
+**Administrator:** Ognjen Todorovic
+**Data Storage:** Supabase PostgreSQL (Cloud Database)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-4.0-green.svg)
@@ -25,14 +28,14 @@ A modern web application for tracking and managing MLFF (Medium-Large Fiber Faci
 - ✅ **Search & Filter** - Fast search by inventory number, type, status, or location
 
 ### Technical Features
-- 🌐 **Cloud Database** - Supabase PostgreSQL (unlimited capacity vs LocalStorage 5-10MB)
+- 🌐 **Cloud Database** - Supabase PostgreSQL with anonymous access (no login required)
 - 📦 **Cloud Storage** - Supabase Storage (1GB free, up to 50MB per file)
-- 🔐 **Authentication** - Google OAuth via Supabase Auth
-- 🌍 **Public QR Access** - Equipment reports visible without login
+- 🔓 **Anonymous Mode** - Full app access without authentication for team collaboration
+- 🌍 **Public Access** - Anyone with the link can view and manage equipment
 - 🚀 **GitHub Pages Hosting** - Free unlimited bandwidth
 - 📱 **Responsive Design** - Works on desktop, tablet, and mobile
 - 🗺️ **Interactive Maps** - OpenStreetMap integration with location markers
-- 🔍 **Full-Text Search** - PostgreSQL GIN indexes for instant search
+- 🔍 **Real-time Sync** - All users see changes instantly
 
 ---
 
@@ -55,29 +58,31 @@ A modern web application for tracking and managing MLFF (Medium-Large Fiber Faci
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    SUPABASE BACKEND                         │
-│  ┌────────────────┐  ┌────────────────┐  ┌───────────────┐ │
-│  │   PostgreSQL   │  │    Storage     │  │     Auth      │ │
-│  │   (Database)   │  │   (Files)      │  │  (Google)     │ │
-│  │                │  │                │  │               │ │
-│  │ - locations    │  │ - Photos       │  │ - User mgmt   │ │
-│  │ - equipment    │  │ - Documents    │  │ - OAuth       │ │
-│  │ - documents    │  │ (50MB max)     │  │ - Sessions    │ │
-│  │ - maintenance  │  │                │  │               │ │
-│  │ - audit_log    │  │ Public URLs    │  │ JWT tokens    │ │
-│  └────────────────┘  └────────────────┘  └───────────────┘ │
+│  ┌────────────────────────────────┐  ┌───────────────────┐ │
+│  │         PostgreSQL             │  │      Storage      │ │
+│  │         (Database)             │  │      (Files)      │ │
+│  │                                │  │                   │ │
+│  │ - locations (lokacije)         │  │ - Location photos │ │
+│  │ - equipment (oprema)           │  │ - Equipment photos│ │
+│  │ - documents (dokumenti)        │  │ - PDF documents   │ │
+│  │ - maintenance (servis)         │  │ (50MB max)        │ │
+│  │ - audit_log (istorija)         │  │                   │ │
+│  │ - custom_types                 │  │ Public CDN URLs   │ │
+│  └────────────────────────────────┘  └───────────────────┘ │
 │                                                             │
 │  Row Level Security (RLS):                                 │
-│  ✅ Public READ (QR codes work without login)              │
-│  🔒 Authenticated WRITE (admin only)                       │
+│  ✅ Anonymous Mode - Public READ & WRITE for all           │
+│  🌐 Shared database - Everyone sees the same data          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Data Flow:**
-1. User opens `https://ognjenpetar.github.io/mlff-equipment-tracking/`
+1. User opens `https://ognjenpetar.github.io/Mlff-evidencina-opreme/`
 2. GitHub Pages serves static HTML/CSS/JS files
 3. Browser loads Supabase SDK and connects to database
-4. User can view data (public) or login to modify (authenticated)
-5. QR codes link directly to equipment reports (public access)
+4. User can immediately view and modify data (no login required)
+5. All changes are synced instantly to Supabase PostgreSQL
+6. QR codes link directly to equipment reports
 
 ---
 
@@ -216,13 +221,17 @@ equipment (
     location_id UUID → locations(id) CASCADE,
     inventory_number TEXT UNIQUE,
     type TEXT,
-    status TEXT, -- Aktivna, Na servisu, Neispravna, Povučena
+    status TEXT, -- Aktivna, Neaktivna, Na servisu, Neispravna, Povučena
+    sub_location TEXT CHECK (sub_location IN ('Gentri', 'Ormar')),
     manufacturer TEXT,
     model TEXT,
     serial_number TEXT,
     ip_address INET,
     mac_address MACADDR,
+    x_coord INTEGER, y_coord INTEGER, z_coord INTEGER,
     installation_date DATE,
+    installer_name TEXT,
+    tester_name TEXT,
     warranty_expiry DATE,
     photo_url TEXT,
     notes TEXT,
@@ -467,9 +476,9 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ## 📞 Support
 
-- **GitHub Issues:** [Report a bug](https://github.com/ognjenpetar/mlff-equipment-tracking/issues)
+- **GitHub Issues:** [Report a bug](https://github.com/ognjenpetar/Mlff-evidencina-opreme/issues)
 - **Documentation:** See [DEPLOYMENT.md](DEPLOYMENT.md) and [BACKEND_GUIDE.md](BACKEND_GUIDE.md)
-- **Email:** [your-email@example.com](mailto:your-email@example.com)
+- **Administrator:** Ognjen Todorovic
 
 ---
 

@@ -559,13 +559,13 @@ function performSearch(query) {
         (loc.equipment || []).forEach(eq => {
             if (eq.inventoryNumber.toLowerCase().includes(q) ||
                 eq.type.toLowerCase().includes(q) ||
-                (eq.ip && eq.ip.toLowerCase().includes(q)) ||
-                (eq.mac && eq.mac.toLowerCase().includes(q)) ||
-                (eq.installer && eq.installer.toLowerCase().includes(q)) ||
+                (eq.ipAddress && eq.ipAddress.toLowerCase().includes(q)) ||
+                (eq.macAddress && eq.macAddress.toLowerCase().includes(q)) ||
+                (eq.installerName && eq.installerName.toLowerCase().includes(q)) ||
                 (eq.manufacturer && eq.manufacturer.toLowerCase().includes(q)) ||
                 (eq.model && eq.model.toLowerCase().includes(q)) ||
-                (eq.serial_number && eq.serial_number.toLowerCase().includes(q)) ||
-                (eq.sub_location && eq.sub_location.toLowerCase().includes(q)) ||
+                (eq.serialNumber && eq.serialNumber.toLowerCase().includes(q)) ||
+                (eq.subLocation && eq.subLocation.toLowerCase().includes(q)) ||
                 (eq.notes && eq.notes.toLowerCase().includes(q))) {
                 results.push({
                     type: 'equipment',
@@ -708,8 +708,8 @@ function updateStatistics() {
             if (status === 'Aktivna') activeEquipment++;
             if (status === 'Na servisu') onServiceCount++;
 
-            if (eq.warrantyDate) {
-                const warranty = new Date(eq.warrantyDate);
+            if (eq.warrantyExpiry) {
+                const warranty = new Date(eq.warrantyExpiry);
                 if (warranty <= thirtyDaysFromNow && warranty >= now) {
                     expiringWarranties++;
                 }
@@ -764,8 +764,8 @@ function renderWarrantyList() {
 
     appData.locations.forEach(loc => {
         (loc.equipment || []).forEach(eq => {
-            if (eq.warrantyDate) {
-                const warranty = new Date(eq.warrantyDate);
+            if (eq.warrantyExpiry) {
+                const warranty = new Date(eq.warrantyExpiry);
                 const daysUntil = Math.ceil((warranty - now) / (1000 * 60 * 60 * 24));
                 warranties.push({
                     name: `${eq.type} - ${eq.inventoryNumber}`,
@@ -964,7 +964,7 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
         equipment = equipment.filter(eq =>
             eq.inventoryNumber.toLowerCase().includes(q) ||
             eq.type.toLowerCase().includes(q) ||
-            (eq.ip && eq.ip.includes(q))
+            (eq.ipAddress && eq.ipAddress.includes(q))
         );
     }
 
@@ -995,8 +995,8 @@ function renderEquipmentGrid(location, searchQuery = '', statusFilter = '', cont
                     <span class="equipment-card-type">${eq.type}</span>
                     <h4 class="equipment-card-inventory">${eq.inventoryNumber}</h4>
                     <div class="equipment-card-info">
-                        ${eq.ip ? `<span><i class="fas fa-network-wired"></i> ${eq.ip}</span>` : ''}
-                        ${eq.installDate ? `<span><i class="fas fa-calendar"></i> ${formatDate(new Date(eq.installDate))}</span>` : ''}
+                        ${eq.ipAddress ? `<span><i class="fas fa-network-wired"></i> ${eq.ipAddress}</span>` : ''}
+                        ${eq.installationDate ? `<span><i class="fas fa-calendar"></i> ${formatDate(new Date(eq.installationDate))}</span>` : ''}
                         <span><i class="fas fa-circle" style="color:var(--${statusClass === 'active' ? 'success' : statusClass === 'service' ? 'warning' : statusClass === 'broken' ? 'danger' : 'text-muted'});font-size:8px"></i> ${status}</span>
                     </div>
                 </div>
@@ -1053,18 +1053,18 @@ async function renderEquipmentDetail() {
     document.getElementById('eqManufacturer').textContent = equipment.manufacturer || '-';
     document.getElementById('eqModel').textContent = equipment.model || '-';
     document.getElementById('eqSerialNumber').textContent = equipment.serialNumber || '-';
-    document.getElementById('eqIP').textContent = equipment.ip || '-';
-    document.getElementById('eqMAC').textContent = equipment.mac || '-';
-    document.getElementById('eqX').textContent = equipment.x !== undefined && equipment.x !== null ? `${equipment.x} cm` : '-';
-    document.getElementById('eqY').textContent = equipment.y !== undefined && equipment.y !== null ? `${equipment.y} cm` : '-';
-    document.getElementById('eqZ').textContent = equipment.z !== undefined && equipment.z !== null ? `${equipment.z} cm` : '-';
-    document.getElementById('eqInstallDate').textContent = equipment.installDate ? formatDate(new Date(equipment.installDate)) : '-';
-    document.getElementById('eqInstaller').textContent = equipment.installer || '-';
-    document.getElementById('eqTester').textContent = equipment.tester || '-';
+    document.getElementById('eqIP').textContent = equipment.ipAddress || '-';
+    document.getElementById('eqMAC').textContent = equipment.macAddress || '-';
+    document.getElementById('eqX').textContent = equipment.xCoord !== undefined && equipment.xCoord !== null ? `${equipment.xCoord} cm` : '-';
+    document.getElementById('eqY').textContent = equipment.yCoord !== undefined && equipment.yCoord !== null ? `${equipment.yCoord} cm` : '-';
+    document.getElementById('eqZ').textContent = equipment.zCoord !== undefined && equipment.zCoord !== null ? `${equipment.zCoord} cm` : '-';
+    document.getElementById('eqInstallDate').textContent = equipment.installationDate ? formatDate(new Date(equipment.installationDate)) : '-';
+    document.getElementById('eqInstaller').textContent = equipment.installerName || '-';
+    document.getElementById('eqTester').textContent = equipment.testerName || '-';
 
     // Warranty
-    if (equipment.warrantyDate) {
-        const warranty = new Date(equipment.warrantyDate);
+    if (equipment.warrantyExpiry) {
+        const warranty = new Date(equipment.warrantyExpiry);
         const now = new Date();
         const daysUntil = Math.ceil((warranty - now) / (1000 * 60 * 60 * 24));
 
@@ -1678,15 +1678,15 @@ function editEquipment(equipmentId) {
     document.getElementById('eqFormManufacturer').value = equipment.manufacturer || '';
     document.getElementById('eqFormModel').value = equipment.model || '';
     document.getElementById('eqFormSerialNumber').value = equipment.serialNumber || '';
-    document.getElementById('eqFormIP').value = equipment.ip || '';
-    document.getElementById('eqFormMAC').value = equipment.mac || '';
-    document.getElementById('eqFormX').value = equipment.x || '';
-    document.getElementById('eqFormY').value = equipment.y || '';
-    document.getElementById('eqFormZ').value = equipment.z || '';
-    document.getElementById('eqFormInstallDate').value = equipment.installDate || '';
-    document.getElementById('eqFormWarranty').value = equipment.warrantyDate || '';
-    document.getElementById('eqFormInstaller').value = equipment.installer || '';
-    document.getElementById('eqFormTester').value = equipment.tester || '';
+    document.getElementById('eqFormIP').value = equipment.ipAddress || '';
+    document.getElementById('eqFormMAC').value = equipment.macAddress || '';
+    document.getElementById('eqFormX').value = equipment.xCoord || '';
+    document.getElementById('eqFormY').value = equipment.yCoord || '';
+    document.getElementById('eqFormZ').value = equipment.zCoord || '';
+    document.getElementById('eqFormInstallDate').value = equipment.installationDate || '';
+    document.getElementById('eqFormWarranty').value = equipment.warrantyExpiry || '';
+    document.getElementById('eqFormInstaller').value = equipment.installerName || '';
+    document.getElementById('eqFormTester').value = equipment.testerName || '';
     document.getElementById('eqFormNotes').value = equipment.notes || '';
 
     const preview = document.getElementById('eqPhotoPreview');
@@ -1924,35 +1924,36 @@ async function saveEquipment(event) {
                     });
                 }
 
-                // Track other important field changes
+                // Track other important field changes (using camelCase field names)
                 if (equipment.type !== type) {
                     fieldChanges.push({ field_name: 'type', old_value: equipment.type, new_value: type });
                 }
-                if (equipment.ip !== ip) {
-                    fieldChanges.push({ field_name: 'ip_address', old_value: equipment.ip, new_value: ip });
+                if (equipment.ipAddress !== ip) {
+                    fieldChanges.push({ field_name: 'ip_address', old_value: equipment.ipAddress, new_value: ip });
                 }
-                if (equipment.sub_location !== subLocation) {
-                    fieldChanges.push({ field_name: 'sub_location', old_value: equipment.sub_location, new_value: subLocation });
+                if (equipment.subLocation !== subLocation) {
+                    fieldChanges.push({ field_name: 'sub_location', old_value: equipment.subLocation, new_value: subLocation });
                 }
 
+                // Update local equipment object (using camelCase to match Supabase conversion)
                 equipment.type = type;
                 equipment.inventoryNumber = inventoryNumber;
                 equipment.status = status;
-                equipment.sub_location = subLocation;
+                equipment.subLocation = subLocation;
                 equipment.manufacturer = manufacturer;
                 equipment.model = model;
-                equipment.serial_number = serialNumber;
-                equipment.ip = ip;
-                equipment.mac = mac;
-                equipment.x = x;
-                equipment.y = y;
-                equipment.z = z;
-                equipment.installDate = installDate;
-                equipment.warrantyDate = warrantyDate;
-                equipment.installer = installer;
-                equipment.tester = tester;
+                equipment.serialNumber = serialNumber;
+                equipment.ipAddress = ip;
+                equipment.macAddress = mac;
+                equipment.xCoord = x;
+                equipment.yCoord = y;
+                equipment.zCoord = z;
+                equipment.installationDate = installDate;
+                equipment.warrantyExpiry = warrantyDate;
+                equipment.installerName = installer;
+                equipment.testerName = tester;
                 equipment.notes = notes;
-                if (photoUrl) equipment.photo = photoUrl;
+                if (photoUrl) equipment.photoUrl = photoUrl;
                 equipment.updatedAt = new Date().toISOString();
 
                 // Update documents: combine kept existing + new documents
@@ -1978,25 +1979,26 @@ async function saveEquipment(event) {
                 }
 
                 // Update in Supabase - map field names to Supabase format
+                // Note: equipment object now uses camelCase from Supabase conversion
                 const updateData = {
                     inventoryNumber: equipment.inventoryNumber,
                     type: equipment.type,
                     status: equipment.status,
-                    subLocation: equipment.sub_location,  // Required by Supabase trigger
+                    subLocation: equipment.subLocation,  // Required by Supabase trigger (now camelCase)
                     manufacturer: equipment.manufacturer,
                     model: equipment.model,
-                    serialNumber: equipment.serial_number || equipment.serialNumber,
-                    ipAddress: equipment.ip || equipment.ipAddress,
-                    macAddress: equipment.mac || equipment.macAddress,
-                    xCoord: equipment.x,
-                    yCoord: equipment.y,
-                    zCoord: equipment.z,
-                    installationDate: equipment.installDate,
-                    warrantyExpiry: equipment.warrantyDate,
-                    installerName: equipment.installer,
-                    testerName: equipment.tester,
+                    serialNumber: equipment.serialNumber,
+                    ipAddress: equipment.ipAddress,
+                    macAddress: equipment.macAddress,
+                    xCoord: equipment.xCoord,
+                    yCoord: equipment.yCoord,
+                    zCoord: equipment.zCoord,
+                    installationDate: equipment.installationDate,
+                    warrantyExpiry: equipment.warrantyExpiry,
+                    installerName: equipment.installerName,
+                    testerName: equipment.testerName,
                     notes: equipment.notes,
-                    photoURL: equipment.photo || equipment.photo_url
+                    photoURL: equipment.photoUrl
                 };
 
                 await SupabaseService.updateEquipment(id, updateData);
@@ -2396,12 +2398,12 @@ function addToCalendar() {
     if (!location) return;
 
     const equipment = (location.equipment || []).find(e => e.id === currentEquipmentId);
-    if (!equipment || !equipment.warrantyDate) {
+    if (!equipment || !equipment.warrantyExpiry) {
         alert('Nema podatka o garanciji za ovu opremu.');
         return;
     }
 
-    const warranty = new Date(equipment.warrantyDate);
+    const warranty = new Date(equipment.warrantyExpiry);
     const title = encodeURIComponent(`Garancija ističe: ${equipment.type} - ${equipment.inventoryNumber}`);
     const details = encodeURIComponent(`Lokacija: ${location.name}\nInventarski broj: ${equipment.inventoryNumber}`);
     const dateStr = warranty.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -2434,8 +2436,8 @@ function generateEquipmentReportHTML(location, equipment) {
     const now = new Date();
     const status = equipment.status || 'Aktivna';
     let warrantyStatus = '-';
-    if (equipment.warrantyDate) {
-        const warranty = new Date(equipment.warrantyDate);
+    if (equipment.warrantyExpiry) {
+        const warranty = new Date(equipment.warrantyExpiry);
         const daysUntil = Math.ceil((warranty - now) / (1000 * 60 * 60 * 24));
         if (daysUntil < 0) warrantyStatus = 'Istekla';
         else if (daysUntil <= 30) warrantyStatus = `Ističe za ${daysUntil} dana`;
@@ -2470,7 +2472,7 @@ function generateEquipmentReportHTML(location, equipment) {
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">Datum Postavljanja</span>
-                    <span class="print-info-value">${equipment.installDate ? formatDate(new Date(equipment.installDate)) : '-'}</span>
+                    <span class="print-info-value">${equipment.installationDate ? formatDate(new Date(equipment.installationDate)) : '-'}</span>
                 </div>
             </div>
         </div>
@@ -2480,11 +2482,11 @@ function generateEquipmentReportHTML(location, equipment) {
             <div class="print-info-grid">
                 <div class="print-info-item">
                     <span class="print-info-label">IP Adresa</span>
-                    <span class="print-info-value">${equipment.ip || '-'}</span>
+                    <span class="print-info-value">${equipment.ipAddress || '-'}</span>
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">MAC Adresa</span>
-                    <span class="print-info-value">${equipment.mac || '-'}</span>
+                    <span class="print-info-value">${equipment.macAddress || '-'}</span>
                 </div>
             </div>
         </div>
@@ -2494,15 +2496,15 @@ function generateEquipmentReportHTML(location, equipment) {
             <div class="print-info-grid">
                 <div class="print-info-item">
                     <span class="print-info-label">X koordinata</span>
-                    <span class="print-info-value">${equipment.x !== null ? equipment.x : '-'}</span>
+                    <span class="print-info-value">${equipment.xCoord !== null ? equipment.xCoord : '-'}</span>
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">Y koordinata</span>
-                    <span class="print-info-value">${equipment.y !== null ? equipment.y : '-'}</span>
+                    <span class="print-info-value">${equipment.yCoord !== null ? equipment.yCoord : '-'}</span>
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">Z koordinata</span>
-                    <span class="print-info-value">${equipment.z !== null ? equipment.z : '-'}</span>
+                    <span class="print-info-value">${equipment.zCoord !== null ? equipment.zCoord : '-'}</span>
                 </div>
             </div>
         </div>
@@ -2512,11 +2514,11 @@ function generateEquipmentReportHTML(location, equipment) {
             <div class="print-info-grid">
                 <div class="print-info-item">
                     <span class="print-info-label">Instalirao</span>
-                    <span class="print-info-value">${equipment.installer || '-'}</span>
+                    <span class="print-info-value">${equipment.installerName || '-'}</span>
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">Testirao</span>
-                    <span class="print-info-value">${equipment.tester || '-'}</span>
+                    <span class="print-info-value">${equipment.testerName || '-'}</span>
                 </div>
             </div>
         </div>
@@ -2526,7 +2528,7 @@ function generateEquipmentReportHTML(location, equipment) {
             <div class="print-info-grid">
                 <div class="print-info-item">
                     <span class="print-info-label">Garancija Do</span>
-                    <span class="print-info-value">${equipment.warrantyDate ? formatDate(new Date(equipment.warrantyDate)) : '-'}</span>
+                    <span class="print-info-value">${equipment.warrantyExpiry ? formatDate(new Date(equipment.warrantyExpiry)) : '-'}</span>
                 </div>
                 <div class="print-info-item">
                     <span class="print-info-label">Status</span>
@@ -2562,10 +2564,10 @@ function generateLocationReportHTML(location) {
                 <td>${eq.type}</td>
                 <td>${eq.inventoryNumber}</td>
                 <td>${eq.status || 'Aktivna'}</td>
-                <td>${eq.ip || '-'}</td>
-                <td>${eq.installDate ? formatDate(new Date(eq.installDate)) : '-'}</td>
-                <td>${eq.installer || '-'}</td>
-                <td>${eq.warrantyDate ? formatDate(new Date(eq.warrantyDate)) : '-'}</td>
+                <td>${eq.ipAddress || '-'}</td>
+                <td>${eq.installationDate ? formatDate(new Date(eq.installationDate)) : '-'}</td>
+                <td>${eq.installerName || '-'}</td>
+                <td>${eq.warrantyExpiry ? formatDate(new Date(eq.warrantyExpiry)) : '-'}</td>
             </tr>
         `).join('');
     }

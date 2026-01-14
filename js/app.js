@@ -3279,11 +3279,16 @@ function initializeMap() {
 
         const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(mapInstance);
 
-        // Create popup content
+        // Create popup content with photo preview
+        const photoHtml = loc.photoUrl
+            ? `<div class="map-popup-image"><img src="${loc.photoUrl}" alt="${loc.name}"></div>`
+            : '';
+
         const popupContent = `
             <div class="map-popup">
+                ${photoHtml}
                 <h4>${loc.name}</h4>
-                <p><i class="fas fa-map-pin"></i> ${lat}, ${lng}</p>
+                <p><i class="fas fa-map-pin"></i> ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
                 ${loc.description ? `<p class="popup-desc">${loc.description}</p>` : ''}
                 <p><i class="fas fa-microchip"></i> ${equipmentCount} oprema</p>
                 <button class="btn btn-small btn-primary" onclick="showLocationDetail('${loc.id}'); closeModal('mapView')">Otvori Detalje</button>

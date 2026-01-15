@@ -1,3 +1,7 @@
+// ===== AUTHENTICATION =====
+// Authentication is handled by AuthService (js/auth-service.js)
+// This section contains UI integration for auth
+
 // ===== DATA MANAGEMENT =====
 const STORAGE_KEY = 'mlff_equipment_data';
 const SETTINGS_KEY = 'mlff_settings';
@@ -45,6 +49,112 @@ let mapMarkers = [];
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Initializing MLFF Equipment Tracking Application v5.0 (Auth Edition)');
+
+    // Initialize router routes first (needed for auth redirects)
+    initializeRouter();
+
+    // Initialize authentication
+    await initializeAuthentication();
+});
+
+// ===== AUTHENTICATION INITIALIZATION =====
+async function initializeAuthentication() {
+    try {
+        console.log('🔐 Initializing authentication...');
+
+        // Wait for Supabase to be ready
+        if (typeof supabase === 'undefined') {
+            console.log('⏳ Waiting for Supabase...');
+            await new Promise(resolve => {
+                window.addEventListener('supabase-ready', resolve, { once: true });
+                // Fallback timeout
+                setTimeout(resolve, 2000);
+            });
+        }
+
+        // Initialize AuthService
+        await AuthService.initialize();
+
+        // Register auth state change callback
+        AuthService.onAuthStateChange(handleAuthStateChange);
+
+        // Check current auth state and show appropriate screen
+        await checkAuthAndShowScreen();
+
+    } catch (error) {
+        console.error('❌ Error initializing authentication:', error);
+        showLoginScreen();
+    }
+}
+
+// Handle auth state changes (sign in/out)
+function handleAuthStateChange(event, user, role) {
+    console.log('🔄 Auth state changed:', event);
+
+    if (event === 'signed_in') {
+        checkAuthAndShowScreen();
+    } else if (event === 'signed_out') {
+        showLoginScreen();
+    }
+}
+
+// Check authentication status and show appropriate screen
+async function checkAuthAndShowScreen() {
+    if (!AuthService.isAuthenticated()) {
+        console.log('👤 Not authenticated - showing login screen');
+        showLoginScreen();
+        return;
+    }
+
+    if (!AuthService.isAllowedUser()) {
+        console.log('⛔ User not in allowed list - showing access denied');
+        showAccessDeniedScreen();
+        return;
+    }
+
+    console.log('✅ User authenticated and allowed - showing app');
+    await showMainApp();
+}
+
+// Show login screen
+function showLoginScreen() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('accessDeniedScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'none';
+}
+
+// Show access denied screen
+function showAccessDeniedScreen() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('accessDeniedScreen').style.display = 'flex';
+    document.getElementById('appContainer').style.display = 'none';
+
+    // Show denied email
+    const deniedEmail = document.getElementById('deniedEmail');
+    if (deniedEmail) {
+        deniedEmail.textContent = AuthService.getUserEmail() || 'Unknown';
+    }
+}
+
+// Show main application
+async function showMainApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('accessDeniedScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+
+    // Update user UI
+    updateUserUI();
+
+    // Update role-based UI visibility
+    updateRoleBasedUI();
+
+    // Initialize app data and UI
+    await initializeAppAfterAuth();
+}
+
+// Initialize app after successful authentication
+async function initializeAppAfterAuth() {
     loadData();
     loadSettings();
     loadCustomTypes();
@@ -53,10 +163,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateDataStatus();
     updateLocationFilter();
     checkBackupReminder();
-    checkShowWelcome();
-
-    // Initialize router routes
-    initializeRouter();
 
     // Migrate LocalStorage data to Supabase (one-time operation)
     await migrateLocalStorageToSupabase();
@@ -66,7 +172,209 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize maintenance notifications
     initMaintenanceNotifications();
+
+    // Navigate to current route or dashboard
+    if (window.location.hash) {
+        router.handleRoute();
+    } else {
+        router.navigate('/');
+    }
+}
+
+// Update user UI in header
+function updateUserUI() {
+    const userAvatarLetter = document.getElementById('userAvatarLetter');
+    const userName = document.getElementById('userName');
+    const userEmail = document.getElementById('userEmail');
+    const userRoleBadge = document.getElementById('userRoleBadge');
+
+    if (userAvatarLetter) {
+        const name = AuthService.getDisplayName() || 'U';
+        userAvatarLetter.textContent = name.charAt(0).toUpperCase();
+    }
+
+    if (userName) {
+        userName.textContent = AuthService.getDisplayName() || 'Korisnik';
+    }
+
+    if (userEmail) {
+        userEmail.textContent = AuthService.getUserEmail() || '';
+    }
+
+    if (userRoleBadge) {
+        const role = AuthService.getRole();
+        userRoleBadge.textContent = AuthService.getRoleDisplayName();
+        userRoleBadge.className = 'user-role-badge ' + role;
+        userRoleBadge.setAttribute('data-role', role);
+    }
+}
+
+// Update UI based on user role
+function updateRoleBasedUI() {
+    const canEdit = AuthService.canEdit();
+    const canDelete = AuthService.canDelete();
+    const isAdmin = AuthService.canAccessAdmin();
+
+    // Show/hide admin panel button
+    const adminPanelBtn = document.getElementById('adminPanelBtn');
+    if (adminPanelBtn) {
+        adminPanelBtn.style.display = isAdmin ? 'flex' : 'none';
+    }
+
+    // Store permissions globally for use in rendering
+    window.userPermissions = {
+        canEdit,
+        canDelete,
+        isAdmin
+    };
+
+    console.log('🔐 User permissions:', { canEdit, canDelete, isAdmin });
+}
+
+// Toggle user dropdown menu
+function toggleUserDropdown() {
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('active');
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const userMenu = document.getElementById('userMenu');
+    const dropdown = document.getElementById('userDropdown');
+
+    if (userMenu && dropdown && !userMenu.contains(e.target)) {
+        dropdown.classList.remove('active');
+    }
 });
+
+// Handle Google login button click
+async function handleGoogleLogin() {
+    try {
+        const btn = document.getElementById('googleLoginBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Povezivanje...</span>';
+        }
+
+        const { error } = await AuthService.signInWithGoogle();
+
+        if (error) {
+            console.error('❌ Login error:', error);
+            showToast('Greška pri prijavi: ' + error.message, 'error');
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fab fa-google"></i> <span>Prijavi se sa Google</span>';
+            }
+        }
+        // If successful, OAuth will redirect and page will reload
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        showToast('Greška pri prijavi', 'error');
+
+        const btn = document.getElementById('googleLoginBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fab fa-google"></i> <span>Prijavi se sa Google</span>';
+        }
+    }
+}
+
+// Handle logout
+async function handleLogout() {
+    try {
+        showLoadingOverlay('Odjava...');
+        await AuthService.signOut();
+        hideLoadingOverlay();
+        showLoginScreen();
+        showToast('Uspešno ste se odjavili', 'success');
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        hideLoadingOverlay();
+        showToast('Greška pri odjavi', 'error');
+    }
+}
+
+// Show Admin Panel
+async function showAdminPanel() {
+    if (!AuthService.canAccessAdmin()) {
+        showToast('Nemate pristup admin panelu', 'error');
+        return;
+    }
+
+    showView('adminPanelView');
+    updateBreadcrumb([
+        { text: 'Dashboard', link: '#dashboard' },
+        { text: 'Admin Panel', link: null }
+    ]);
+
+    // Initialize and render admin panel
+    await AdminPanel.initialize();
+    const content = document.getElementById('adminPanelContent');
+    if (content) {
+        content.innerHTML = AdminPanel.render();
+        AdminPanel.attachEventListeners();
+    }
+}
+
+// Loading overlay helpers
+function showLoadingOverlay(message = 'Učitavanje...') {
+    let overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="spinner"></div>
+            <p>${message}</p>
+        `;
+        document.body.appendChild(overlay);
+    } else {
+        overlay.querySelector('p').textContent = message;
+        overlay.style.display = 'flex';
+    }
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// Confirm dialog helper
+function showConfirmDialog(title, message, confirmText = 'Potvrdi', cancelText = 'Odustani') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmTitle');
+        const messageEl = document.getElementById('confirmMessage');
+        const confirmBtn = document.getElementById('confirmBtn');
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+        if (confirmBtn) {
+            confirmBtn.textContent = confirmText;
+            confirmBtn.onclick = () => {
+                closeModal('confirmModal');
+                resolve(true);
+            };
+        }
+
+        // Update cancel button
+        const cancelBtn = modal.querySelector('.btn-secondary');
+        if (cancelBtn) {
+            cancelBtn.textContent = cancelText;
+            cancelBtn.onclick = () => {
+                closeModal('confirmModal');
+                resolve(false);
+            };
+        }
+
+        modal.classList.add('active');
+    });
+}
 
 function initializeRouter() {
     // Dashboard route
@@ -1414,6 +1722,12 @@ function downloadQRImage() {
 
 // ===== LOCATION CRUD =====
 function showAddLocationModal() {
+    // Check permission
+    if (!AuthService.canEdit()) {
+        showToast('Nemate dozvolu za dodavanje lokacija', 'error');
+        return;
+    }
+
     document.getElementById('locationModalTitle').textContent = 'Dodaj Lokaciju';
     document.getElementById('locationForm').reset();
     document.getElementById('locationId').value = '';
@@ -1423,6 +1737,12 @@ function showAddLocationModal() {
 }
 
 function editLocation(locationId) {
+    // Check permission
+    if (!AuthService.canEdit()) {
+        showToast('Nemate dozvolu za izmenu lokacija', 'error');
+        return;
+    }
+
     const location = appData.locations.find(l => l.id === locationId);
     if (!location) return;
 
@@ -1638,11 +1958,22 @@ async function deleteLocation(locationId) {
 }
 
 function deleteCurrentLocation() {
+    // Check permission
+    if (!AuthService.canDelete()) {
+        showToast('Nemate dozvolu za brisanje lokacija', 'error');
+        return;
+    }
     confirmDeleteLocation(currentLocationId);
 }
 
 // ===== EQUIPMENT CRUD =====
 function showAddEquipmentModal(subLocation = null) {
+    // Check permission
+    if (!AuthService.canEdit()) {
+        showToast('Nemate dozvolu za dodavanje opreme', 'error');
+        return;
+    }
+
     document.getElementById('equipmentModalTitle').textContent = 'Dodaj Opremu';
     document.getElementById('equipmentForm').reset();
     document.getElementById('equipmentId').value = '';
@@ -1662,6 +1993,12 @@ function showAddEquipmentModal(subLocation = null) {
 }
 
 function editEquipment(equipmentId) {
+    // Check permission
+    if (!AuthService.canEdit()) {
+        showToast('Nemate dozvolu za izmenu opreme', 'error');
+        return;
+    }
+
     const location = appData.locations.find(l => l.id === currentLocationId);
     if (!location) return;
 
@@ -2137,6 +2474,11 @@ async function deleteEquipment(equipmentId) {
 }
 
 function deleteCurrentEquipment() {
+    // Check permission
+    if (!AuthService.canDelete()) {
+        showToast('Nemate dozvolu za brisanje opreme', 'error');
+        return;
+    }
     confirmDeleteEquipment(currentEquipmentId);
 }
 

@@ -1,15 +1,41 @@
 # MLFF Equipment Tracking System
 
-**Verzija 4.0 - Supabase Edition** | [Live Demo](https://ognjenpetar.github.io/Mlff-evidencina-opreme/)
+**Verzija 5.0 - Authentication Edition** | [Live Demo](https://ognjenpetar.github.io/Mlff-evidencina-opreme/)
 
 Web aplikacija za evidenciju i praćenje MLFF (Multi-Lane Free-Flow) opreme na naplatnim portalima. Omogućava kompletno upravljanje lokacijama i opremom sa GPS koordinatama, QR kodovima, servisnom istorijom i dokumentacijom.
 
 **Administrator:** Ognjen Todorovic
 **Kompanija:** Orion E-mobility
 
-![Version](https://img.shields.io/badge/version-4.0-green.svg)
+![Version](https://img.shields.io/badge/version-5.0-green.svg)
 ![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
 ![Database](https://img.shields.io/badge/database-Supabase-3ECF8E.svg)
+![Auth](https://img.shields.io/badge/auth-Google_OAuth-4285F4.svg)
+
+---
+
+## Autentifikacija
+
+Aplikacija koristi Google OAuth za prijavu. Pristup je ograničen na autorizovane korisnike.
+
+### Uloge (Roles)
+
+| Uloga | Pregled | Dodavanje | Izmena | Brisanje | Admin Panel |
+|-------|---------|-----------|--------|----------|-------------|
+| **Super Admin** | Da | Da | Da | Da | Da |
+| **Editor** | Da | Da | Da | Ne | Ne |
+| **Viewer** | Da | Ne | Ne | Ne | Ne |
+
+### Super Admin
+- Email: `ognjenpetar@gmail.com`
+- Ima potpunu kontrolu nad aplikacijom
+- Može upravljati korisnicima kroz Admin Panel
+
+### Pristup
+1. Otvorite aplikaciju
+2. Kliknite "Prijavi se sa Google"
+3. Izaberite Google nalog
+4. Ako je nalog odobren, pristupate aplikaciji
 
 ---
 
@@ -340,6 +366,13 @@ Mlff-evidencina-opreme/
 ---
 
 ## Verzije
+
+### v5.0 - Authentication Edition (Januar 2025)
+- Google OAuth autentifikacija
+- Role-based access control (Super Admin, Editor, Viewer)
+- Admin panel za upravljanje korisnicima
+- Cyber security themed login ekran
+- Svi pristupi zahtevaju autentifikaciju
 
 ### v4.0 - Supabase Edition (Januar 2025)
 - Anonymous mode (bez autentifikacije)

@@ -252,7 +252,6 @@ document.addEventListener('click', (e) => {
 // Handle Google login button click
 async function handleGoogleLogin() {
     console.log('🔐 handleGoogleLogin() called');
-    alert('Login button clicked!'); // Debug alert
 
     try {
         console.log('🔐 AuthService available:', typeof AuthService !== 'undefined');

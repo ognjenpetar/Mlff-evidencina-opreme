@@ -1,6 +1,6 @@
-# Deployment Guide - MLFF Equipment Tracking v4.0
+# Deployment Guide - MLFF Equipment Tracking v5.1
 
-**Enhanced Edition: Supabase + GitHub Pages**
+**Advanced Visualizations Edition: Supabase + GitHub Pages**
 
 Ovaj dokument pruža kompletan vodič za deployment aplikacije na Supabase backend + GitHub Pages hosting.
 

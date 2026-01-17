@@ -1,11 +1,11 @@
 # MLFF Equipment Tracking System
 
-**Version 5.0 - Enhanced Analytics Edition** | [Orion E-mobility](https://github.com/ognjenpetar/Mlff-evidencina-opreme)
+**Version 5.1 - Advanced Visualizations Edition** | [Orion E-mobility](https://github.com/ognjenpetar/Mlff-evidencina-opreme)
 
 Moderna web aplikacija za evidenciju i praćenje MLFF (Multi-Lane Free-Flow) opreme na naplatnim portalima. Uključuje GPS lokacije, QR kodove sa logom, istoriju održavanja, upravljanje dokumentima, naprednu analitiku i interaktivne dashboarde.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-5.0-green.svg)
+![Version](https://img.shields.io/badge/version-5.1-green.svg)
 ![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
 
 ---
@@ -31,6 +31,13 @@ Moderna web aplikacija za evidenciju i praćenje MLFF (Multi-Lane Free-Flow) opr
 - **Napredni KPI-jevi** - Dostupnost, garancijska pokrivenost, prosečna starost, trošak po opremi
 - **Drill-Down Analitika** - Klik na chart za detaljan pregled podataka
 - **Export** - Izvoz analitike u PDF i Excel format
+
+### Napredne Vizualizacije (v5.1 - NOVO)
+- **Gauge Indikatori** - Radijalni indikatori zdravlja sistema (Zdravlje, Garancija, Uptime, Kapacitet)
+- **Heatmap Kalendar** - GitHub-style kalendar aktivnosti održavanja po danima
+- **Equipment Timeline** - Interaktivna vremenska linija životnog ciklusa opreme (vis-timeline)
+- **Inventory Treemap** - D3.js treemap struktura inventara (Lokacija → Tip → Oprema)
+- **Sankey Dijagram** - Tok opreme kroz statuse i lokacije (D3.js sankey)
 
 ### Tehničke Karakteristike
 - **Cloud Database** - Supabase PostgreSQL (neograničen kapacitet)
@@ -215,6 +222,14 @@ custom_types (
 
 ## Verzije
 
+### v5.1 - Advanced Visualizations Edition (Januar 2026)
+- Gauge indikatori zdravlja sistema (4 radijalna grafikona)
+- Heatmap kalendar aktivnosti održavanja
+- Equipment Timeline sa vis-timeline.js
+- Inventory Treemap sa D3.js
+- Sankey dijagram toka opreme
+- Dodati D3.js, d3-sankey i vis-timeline biblioteke
+
 ### v5.0 - Enhanced Analytics Edition (Januar 2026)
 - Bulk operacije (masovna promena statusa, brisanje)
 - Napredna pretraga sa 8+ filtera
@@ -252,6 +267,6 @@ MIT License - vidi LICENSE fajl.
 
 ---
 
-**Verzija:** 5.0 - Enhanced Analytics Edition
+**Verzija:** 5.1 - Advanced Visualizations Edition
 **Poslednje Ažuriranje:** Januar 2026
 

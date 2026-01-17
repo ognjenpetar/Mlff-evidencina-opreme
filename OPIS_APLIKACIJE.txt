@@ -1,7 +1,7 @@
 ================================================================================
                     EVIDENCIJA MLFF OPREME - DETALJAN OPIS
                            Orion E-mobility
-                        Verzija 5.0 - Januar 2026
+                        Verzija 5.1 - Januar 2026
 ================================================================================
 
 SVRHA APLIKACIJE:
@@ -112,7 +112,40 @@ Export (NOVO):
 - Export u PDF
 - Export u Excel
 
-8. NAVIGACIJA I STRUKTURA
+8. NAPREDNE VIZUALIZACIJE (NOVO u v5.1)
+---------------------------------------
+Gauge Indikatori:
+- Zdravlje Sistema (radijalni gauge)
+- Garancijska Pokrivenost (radijalni gauge)
+- Uptime Score (radijalni gauge)
+- Kapacitet Servisa (radijalni gauge)
+- Boje: Zelena >80%, Žuta 50-80%, Crvena <50%
+
+Heatmap Kalendar:
+- GitHub-style kalendar aktivnosti održavanja
+- Prikaz broja servisa po danu
+- Navigacija po godinama
+- Tooltip sa detaljima
+
+Equipment Timeline:
+- Vis-timeline.js biblioteka
+- Prikaz životnog ciklusa opreme
+- Instalacija, servisi, garancija, kvarovi
+- Zoom i filter kontrole
+
+Inventory Treemap:
+- D3.js hierarchical visualization
+- Struktura: Lokacija → Tip → Oprema
+- Boja prema statusu
+- Breadcrumb navigacija
+
+Sankey Dijagram:
+- D3-sankey biblioteka
+- Tok opreme: Status → Tip → Lokacija
+- Debljina linije = količina opreme
+- Interaktivni hover
+
+9. NAVIGACIJA I STRUKTURA
 -------------------------
 - Breadcrumb navigacija
 - Bočni panel sa hijerarhijskim prikazom
@@ -197,7 +230,8 @@ STRUKTURA FAJLOVA:
 │   ├── supabase-service.js     # API servis
 │   ├── router.js               # SPA routing
 │   ├── app.js                  # Glavna logika
-│   └── analytics.js            # Analitika
+│   ├── analytics.js            # Analitika
+│   └── visualizations.js       # Napredne vizualizacije (v5.1)
 ├── supabase/
 │   └── migrations/             # SQL migracije
 ├── README.md                   # Glavni opis
@@ -233,6 +267,15 @@ KAKO POKRENUTI:
 
 VERZIJE:
 ========
+
+Verzija 5.1 - Advanced Visualizations Edition (Januar 2026)
+-----------------------------------------------------------
++ Gauge indikatori zdravlja sistema (4 radijalna grafikona)
++ Heatmap kalendar aktivnosti održavanja (GitHub-style)
++ Equipment Timeline sa vis-timeline.js
++ Inventory Treemap sa D3.js
++ Sankey dijagram toka opreme
++ Dodati D3.js, d3-sankey i vis-timeline biblioteke
 
 Verzija 5.0 - Enhanced Analytics Edition (Januar 2026)
 ------------------------------------------------------
@@ -281,6 +324,6 @@ BRENDING:
 
 
 ================================================================================
-                    Verzija 5.0 - Enhanced Analytics Edition
+                    Verzija 5.1 - Advanced Visualizations Edition
                               Januar 2026
 ================================================================================

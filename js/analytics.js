@@ -102,6 +102,11 @@ async function applyAnalyticsFilters() {
 
     // Render table
     renderCostlyEquipmentTable(costlyEquipment);
+
+    // Initialize advanced visualizations (v5.1)
+    if (typeof initAdvancedVisualizations === 'function') {
+        await initAdvancedVisualizations(stats);
+    }
 }
 
 /**

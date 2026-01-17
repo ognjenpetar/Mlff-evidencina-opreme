@@ -1,6 +1,6 @@
 # Uputstvo za Korišćenje - MLFF Equipment Tracking
 
-**Verzija 5.0 - Enhanced Analytics Edition** | Orion E-mobility
+**Verzija 5.1 - Advanced Visualizations Edition** | Orion E-mobility
 
 Kompletan vodič za korišćenje aplikacije za evidenciju MLFF opreme.
 
@@ -363,6 +363,83 @@ Klikni **"Analitika"** tab u navigaciji
 
 ---
 
+## Napredne Vizualizacije (v5.1)
+
+### Gauge Indikatori Zdravlja Sistema
+
+Četiri radijalna indikatora prikazuju ključne metrike:
+
+| Gauge | Opis | Kako se računa |
+|-------|------|----------------|
+| Zdravlje Sistema | Ukupno zdravlje flote | Aktivna×100% + Na servisu×50% |
+| Garancija | Procenat pod garancijom | Oprema sa važećom garancijom / Ukupno |
+| Uptime | Operativna dostupnost | Aktivna oprema / Ukupno |
+| Kapacitet Servisa | Preostali servisni kapacitet | 100% - (Na servisu + Neispravna) |
+
+**Boje:**
+- 🟢 Zelena: > 80%
+- 🟡 Žuta: 50-80%
+- 🔴 Crvena: < 50%
+
+### Heatmap Kalendar Održavanja
+
+GitHub-style kalendar koji prikazuje aktivnost servisa po danima.
+
+**Korišćenje:**
+1. Koristi strelice za promenu godine
+2. Hover nad ćelijom za detalje (datum, broj servisa)
+3. Intenzitet boje pokazuje broj servisa tog dana
+
+**Legenda:**
+- Svetlija = manje servisa
+- Tamnija zelena = više servisa
+
+### Equipment Timeline
+
+Interaktivna vremenska linija životnog ciklusa opreme.
+
+**Elementi:**
+- 🟢 **Instalacija** - Datum postavljanja
+- 🔵 **Servis** - Preventivni i korektivni servisi
+- 🟡 **Garancija** - Period trajanja garancije
+- 🔴 **Kvar** - Korektivni servisi/kvarovi
+
+**Kontrole:**
+- **Filter** - Izaberi specifičnu opremu
+- **Zoom +/-** - Približi/udalji
+- **Fit** - Prikaži sve
+
+### Inventory Treemap
+
+Hijerarhijski prikaz strukture inventara.
+
+**Nivoi:**
+1. Sve Lokacije (root)
+2. Lokacija
+3. Tip opreme
+4. Pojedinačna oprema
+
+**Interakcija:**
+- Klik na opremu otvara detalje
+- Boja pokazuje dominantan status
+- Breadcrumb navigacija za povratak
+
+### Sankey Dijagram
+
+Vizualizacija toka opreme kroz sistem.
+
+**Tokovi:**
+- Status → Tip opreme → Lokacija
+- Debljina linije = broj opreme
+- Hover za detalje toka
+
+**Boje:**
+- Zelena = Aktivna
+- Žuta = Na servisu
+- Crvena = Neispravna
+
+---
+
 ## Mapa Lokacija
 
 ### Pregled Mape
@@ -469,7 +546,7 @@ Sistem automatski proverava:
 
 ---
 
-**Verzija:** 5.0 - Enhanced Analytics Edition
+**Verzija:** 5.1 - Advanced Visualizations Edition
 **Poslednje Ažuriranje:** Januar 2026
 
 Za tehničku podršku vidi: [SUPABASE_SETUP.md](SUPABASE_SETUP.md) i [README.md](README.md)
